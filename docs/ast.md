@@ -2,11 +2,15 @@
 
 ### Utilities
 ```fs
-typeName        -> IDENTIFIER genericParams?
+typeName  	-> IDENTIFIER genericArgs? ( "." IDENTIFIER genericArgs? )*;
+            | "[" "]" typeName 
+			| "fn" "(" ( typeName ("," typeName)* )? ")" ( "->" typeName)?;
+
+
 arguments       -> expression ("," expression)* ","?;
 genericParams   -> "[" IDENTIFIER ( "," IDENTIFIER )* "," "]";
 genericArgs     -> "[" typeName ("," typeName)* ","? "]";
-parameters      -> IDENTIFIER ":" typeName ("=" expression)? (IDENTIFIER ":" typeName ("=" expression)?)* ","?
+parameters      -> IDENTIFIER ":" typeName ("=" expression)? (IDENTIFIER ":" typeName ("=" expression)?)* ","?;
 ```
 
 ### Expressions
@@ -20,7 +24,9 @@ primary -> NUMBER
         | "true"
         | "false"
         | blockExpr
-        | typeName "." IDENTIFIER;
+		| lambda
+        | typeName "." IDENTIFIER
+		| typeName "{" (IDENTIFIER ":" expression ("," IDENTIFIER ":" expression)? "," )? "}";
 
 call        -> primary ( genericArgs "(" arguments? ")" | "." IDENTIFIER )*;
 unary       -> ("!" | "-") unary | call;

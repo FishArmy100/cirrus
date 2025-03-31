@@ -34,7 +34,7 @@ impl Player
 
 pub struct Board
 {
-    values: TileState[3][3] = [
+    values: [][]TileState = [
         [TileState.Empty, TileState.Empty, TileState.Empty],
         [TileState.Empty, TileState.Empty, TileState.Empty],
         [TileState.Empty, TileState.Empty, TileState.Empty],
