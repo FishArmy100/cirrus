@@ -51,6 +51,11 @@ impl CharReader
         }
     }
 
+    pub fn current_is(&self, chars: &[char]) -> bool
+    {
+        self.current().is_some_and(|c| chars.contains(&c))
+    }
+
     pub fn advance(&mut self) -> Option<char> 
     {
         if !self.at_end()

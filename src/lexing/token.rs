@@ -20,6 +20,8 @@ pub enum TokenType
     Mod,
     Return,
     Pub,
+    SelfVal,
+    SelfType,
     Struct,
     True,
     Type,
@@ -27,6 +29,7 @@ pub enum TokenType
     Var,
     Where,
     While,
+    Yield,
 
     // Tokens
     OpenParen,
@@ -96,6 +99,20 @@ pub struct Token
     pub pos: TokenPos,
     pub token_type: TokenType,
     pub value: Option<TokenValue>
+}
+
+impl std::fmt::Display for Token 
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result 
+    {
+        match &self.value
+        {
+            Some(TokenValue::Float(v)) => write!(f, "{:?}({})", self.token_type, v),
+            Some(TokenValue::Int(v)) => write!(f, "{:?}({})", self.token_type, v),
+            Some(TokenValue::String(v)) => write!(f, "{:?}({})", self.token_type, v),
+            None => write!(f, "{:?}", self.token_type)
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
