@@ -2,7 +2,7 @@
 
 ### Utilities
 ```fs
-typeName  	-> IDENTIFIER genericArgs? ( "." IDENTIFIER genericArgs? )*;
+typeName  	-> (IDENTIFIER | Self) genericArgs? ( "." IDENTIFIER genericArgs? )*;
             | "[" "]" typeName 
 			| "fn" "(" ( typeName ("," typeName)* )? ")" ( "->" typeName)?;
 
@@ -19,7 +19,7 @@ pattern			-> NUMBER | STRING | IDENTIFIER ("." IDENTIFIER)* ("(" pattern ")")? |
 
 ### Expressions
 ```fs
-lambda -> (IDENTIFIER | "|" (IDENTIFIER (":" typeName)?) ("," IDENTIFIER (":" typeName)?)* ","? "|" ("->" typeName)?) "=>" expression
+lambda -> "|" (IDENTIFIER (":" typeName)? ("," IDENTIFIER (":" typeName)?)* ","? "|" ("->" typeName)?) "=>" expression
 primary -> NUMBER
         | STRING
         | IDENTIFIER
@@ -31,8 +31,9 @@ primary -> NUMBER
         | lambda
         | typeName "." IDENTIFIER
 		| typeName "{" (IDENTIFIER ":" expression ("," IDENTIFIER ":" expression)? "," )? "}";
+        | blockExpr
 
-call        -> primary ( genericArgs "(" arguments? ")" | "." IDENTIFIER )*;
+call        -> primary ( genericArgs "(" arguments? ")" | "[" expression "]" | "." IDENTIFIER )*;
 unary       -> ("!" | "-") unary | call;
 factor      -> unary ( ( "/" | "*" ) unary )* ;
 term        -> factor ( ( "+" | "-" ) factor )* ;
@@ -69,6 +70,9 @@ enumDecl	-> "enum" IDENTIFIER genericParams? whereClause? "{" IDENTIFIER ( "(" t
 typeDecl	-> "type" IDENTIFIER genericParams? "=" typeName ";";
 
 implStmt    -> "impl" genericParams typeName ("for") typeName "{" (fnDecl | constStmt)* "}";
+
+breakStmt   -> "break"+ ";";
+breakStmt   -> "continue"+ ";";
 
 statement	-> letStmt | varStmt | constStmt | assignStmt | ifExpr | matchExpr | blockExpr | exprStmt | useStmt;
 declaration	-> "pub" (fnDecl | structDecl | interfaceDecl | enumDecl | typeDecl | letStmt | varStmt | constStmt | useStmt) | implStmt;
