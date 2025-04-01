@@ -24,7 +24,7 @@ pub fn parse(tokens: Vec<Token>) -> ParserResult<Option<Expression>>
     parse_expression(&mut reader)
 }
 
-fn parse_expression(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
+pub fn parse_expression(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
 {
     parse_logical_or(reader)
 }

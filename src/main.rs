@@ -25,7 +25,7 @@ fn read_file(path: &str) -> Result<String, String>
 fn main() 
 {
     // let text = read_file("tests/test.crs").unwrap();
-    let text = "[]fn(Map[Int, String], String) -> []Int";
+    let text = "(a => a * a)(5)";
     let tokens = lexing::lex_text(&text);
 
     if tokens.errors.len() > 0 
@@ -39,7 +39,7 @@ fn main()
     }
     
     let mut reader = TokenReader::new(&tokens.tokens, None).unwrap();
-    let ast = parsing::parse_type_name(&mut reader);
+    let ast = parsing::parse_expression(&mut reader);
 
     match ast 
     {
