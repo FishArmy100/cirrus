@@ -93,6 +93,19 @@ pub enum TokenValue
     Float(f64),
 }
 
+impl std::fmt::Display for TokenValue
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result 
+    {
+        match self 
+        {
+            TokenValue::String(s) => write!(f, "{}", s),
+            TokenValue::Int(i) => write!(f, "{}", i),
+            TokenValue::Float(n) => write!(f, "{}", n),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Token 
 {

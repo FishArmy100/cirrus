@@ -1,13 +1,15 @@
 pub mod expr;
 pub mod stmt;
-use expr::Expression;
+pub use expr::*;
+use itertools::Itertools;
+pub use stmt::*;
 
 use crate::lexing::token::Token;
 
 #[derive(Debug, Clone)]
 pub enum TypeName
 {
-    Identifier(Vec<(Token, Option<GenericArgs>)>),
+    Identifier(Token, Option<GenericArgs>),
     Array
     {
         open_bracket: Token,
@@ -19,9 +21,37 @@ pub enum TypeName
         fn_tok: Token,
         open_paren: Token,
         parameter_types: Vec<TypeName>,
-        close_token: Token,
-        return_arrow: Option<Token>,
-        return_type: Option<Box<TypeName>>,
+        close_paren: Token,
+        arrow: Token,
+        return_type: Box<TypeName>,
+    }
+}
+
+impl TypeName
+{
+    pub fn pretty_print(&self) -> String 
+    {
+        match self
+        {
+            TypeName::Identifier(token, generic_args) =>
+            {
+                let mut text = token.value.as_ref().unwrap().to_string();
+                if let Some(args) = generic_args
+                {
+                    text += &format!("[{}]", args.args.iter().map(|a| a.pretty_print()).join(", "));
+                }
+
+                text
+            },
+            TypeName::Array { open_bracket: _, close_bracket: _, type_name } => 
+            {
+                format!("[]{}", type_name.pretty_print())
+            },
+            TypeName::Function { fn_tok: _, open_paren: _, parameter_types, close_paren: _, arrow: _, return_type } => 
+            {
+                format!("fn({}) -> {}", parameter_types.iter().map(|t| t.pretty_print()).join(", "), return_type.pretty_print())
+            },
+        }
     }
 }
 

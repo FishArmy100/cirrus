@@ -59,6 +59,10 @@ pub fn lex_text(text: &str) -> LexerResult
         {
             continue;
         }
+        else if lex_comments(&mut reader)
+        {
+            continue;
+        }
         else if let Some(symbol) = check_symbol(&mut reader)
         {
             tokens.push(symbol);
@@ -95,6 +99,26 @@ pub fn lex_text(text: &str) -> LexerResult
     });
 
     LexerResult { text: reader.chars().to_vec(), tokens, errors }
+}
+
+pub fn lex_comments(reader: &mut CharReader) -> bool
+{
+    if reader.check_many("//").is_some()
+    {
+        while let Some(c) = reader.advance()
+        {
+            if c == '\n'
+            {
+                break;
+            }
+        }
+
+        true
+    }
+    else 
+    {
+        false    
+    }
 }
 
 pub fn check_symbol(reader: &mut CharReader) -> Option<Token>

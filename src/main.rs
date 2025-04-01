@@ -1,8 +1,11 @@
 use std::{fs::File, io::Read};
 
+use parsing::token_reader::TokenReader;
+
 pub mod lexing;
 pub mod parsing;
 pub mod ast;
+pub mod utils;
 
 fn read_file(path: &str) -> Result<String, String> 
 {
@@ -21,21 +24,30 @@ fn read_file(path: &str) -> Result<String, String>
 
 fn main() 
 {
-    let text = read_file("tests/test.crs").unwrap();
-    let result = lexing::lex_text(&text);
-    
-    if result.errors.len() > 0
+    // let text = read_file("tests/test.crs").unwrap();
+    let text = "[]fn(Map[Int, String], String) -> []Int";
+    let tokens = lexing::lex_text(&text);
+
+    if tokens.errors.len() > 0 
     {
-        for e in &result.errors
+        for e in &tokens.errors
         {
             println!("Error: {}", e)
         }
+
+        return;
     }
-    else 
+    
+    let mut reader = TokenReader::new(&tokens.tokens, None).unwrap();
+    let ast = parsing::parse_type_name(&mut reader);
+
+    match ast 
     {
-        for t in &result.tokens
+        Ok(None) => println!("Empty AST"),
+        Ok(Some(ast)) => println!("{:#?}", ast),
+        Err(err) => 
         {
-            println!("{}", t);
+            println!("{:?}", err);
         }
     }
 }

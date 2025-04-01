@@ -1,6 +1,6 @@
 use either::Either;
 
-use crate::lexing::token::Token;
+use crate::{lexing::token::Token, utils::PrettyPrinter};
 
 use super::{*, stmt::*};
 
@@ -13,13 +13,17 @@ pub struct LambdaParam
 }
 
 #[derive(Debug, Clone)]
-pub struct LambdaParams
+pub enum LambdaParams
 {
-    pub open_pipe: Token,
-    pub parameters: Vec<LambdaParam>,
-    pub close_pipe: Token,
-    pub arrow: Option<Token>,
-    pub return_type: Option<TypeName>,
+    Simple(Token),
+    Complex
+    {
+        open_pipe: Token,
+        parameters: Vec<LambdaParam>,
+        close_pipe: Token,
+        arrow: Option<Token>,
+        return_type: Option<TypeName>,
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -57,7 +61,7 @@ pub struct GroupingExpr
 }
 
 #[derive(Debug, Clone)]
-pub struct Access
+pub struct AccessExpr
 {
     pub expression: Box<Expression>,
     pub dot: Token,
@@ -161,10 +165,19 @@ pub struct ElseBranch
 }
 
 #[derive(Debug, Clone)]
+pub struct ArrayLiteral
+{
+    pub open_bracket: Token,
+    pub expressions: Vec<Expression>,
+    pub close_bracket: Token,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression
 {
     Lambda(LambdaExpr),
     Literal(Token),
+    ArrayLiteral(ArrayLiteral),
     Identifier(Token),
     Grouping(GroupingExpr),
     SelfExpr(Token),
@@ -172,6 +185,7 @@ pub enum Expression
     TypeValue(TypeValueExpr),
     Construction(ConstructionExpr),
     Call(CallExpr),
+    Access(AccessExpr),
     Index(IndexExpr),
     Unary(UnaryExpr),
     Binary(BinaryExpr),

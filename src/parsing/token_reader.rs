@@ -2,21 +2,21 @@ use crate::lexing::token::{Token, TokenType};
 
 use super::{ParserError, ParserResult};
 
-pub struct TokenReader
+pub struct TokenReader<'a>
 {
-    tokens: Vec<Token>,
+    tokens: &'a [Token],
     index: usize,
 }
 
-impl TokenReader
+impl<'a> TokenReader<'a>
 {
-    pub fn new(tokens: Vec<Token>) -> Option<Self>
+    pub fn new(tokens: &'a [Token], start_index: Option<usize>) -> Option<Self>
     {
-        if tokens.len() > 0 { return None };
+        if tokens.len() == 0 || start_index.is_some_and(|s| s >= tokens.len()) { return None };
 
         Some(Self {
             tokens,
-            index: 0
+            index: start_index.map_or(0, |v| v)
         })
     }
 
@@ -47,6 +47,11 @@ impl TokenReader
         }
     }
 
+    pub fn current_type(&self) -> Option<TokenType>
+    {
+        self.current().map(|c| c.token_type)
+    }
+
     pub fn advance(&mut self) -> Option<Token>
     {
         if !self.at_end()
@@ -71,6 +76,11 @@ impl TokenReader
         {
             None    
         }
+    }
+
+    pub fn peek_is(&self, count: usize, t: TokenType) -> bool
+    {
+        self.peek(count).is_some_and(|token| token.token_type == t)
     }
 
     pub fn previous(&self) -> Option<Token>
@@ -129,6 +139,11 @@ impl TokenReader
         }
     }
 
+    pub fn is_sequence(&mut self, types: &[TokenType]) -> bool
+    {
+        types.iter().enumerate().map(|(i, t)| self.peek(i).is_some_and(|c| c.token_type == *t)).all(|b| b)
+    }
+
     pub fn advance_count(&mut self, count: usize) -> Option<Vec<Token>>
     {
         if count == 0 { return Some(vec![]); }
@@ -152,7 +167,7 @@ impl TokenReader
         match self.check(t)
         {
             Some(token) => Ok(token),
-            None => Err(ParserError::ExpectedToken(t))
+            None => Err(ParserError::ExpectedToken(t, self.current()))
         }
     }
 }

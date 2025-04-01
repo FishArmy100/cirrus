@@ -2,9 +2,9 @@
 
 ### Utilities
 ```fs
-typeName  	-> (IDENTIFIER | Self) genericArgs? ( "." IDENTIFIER genericArgs? )*;
+typeName  	-> (IDENTIFIER | Self) genericArgs?;
             | "[" "]" typeName 
-			| "fn" "(" ( typeName ("," typeName)* )? ")" ( "->" typeName)?;
+			| "fn" "(" ( typeName ("," typeName)* )? ")"  "->" typeName;
 
 
 arguments       -> expression ("," expression)* ","?;
@@ -19,7 +19,8 @@ pattern			-> NUMBER | STRING | IDENTIFIER ("." IDENTIFIER)* ("(" pattern ")")? |
 
 ### Expressions
 ```fs
-lambda -> "|" (IDENTIFIER (":" typeName)? ("," IDENTIFIER (":" typeName)?)* ","? "|" ("->" typeName)?) "=>" expression
+lambda -> (IDENTIFIER | "|" (IDENTIFIER (":" typeName)? ("," IDENTIFIER (":" typeName)?)* ","? "|") ("->" typeName)?) "=>" expression;
+arrayLiteral -> "[" (expression ("," expression)* ","? )? "]"
 primary -> NUMBER
         | STRING
         | IDENTIFIER
@@ -29,9 +30,8 @@ primary -> NUMBER
         | "false"
         | blockExpr
         | lambda
-        | typeName "." IDENTIFIER
 		| typeName "{" (IDENTIFIER ":" expression ("," IDENTIFIER ":" expression)? "," )? "}";
-        | blockExpr
+        | arrayLiteral
 
 call        -> primary ( genericArgs "(" arguments? ")" | "[" expression "]" | "." IDENTIFIER )*;
 unary       -> ("!" | "-") unary | call;
@@ -56,8 +56,6 @@ expression  -> logicalOr | ifExpr | matchExpr;
 useStmt 	-> "use" IDENTIFIER ("." IDENTIFIER)* ("." "*")? ";";
 exprStmt	-> expression ";";
 letStmt     -> "let" IDENTIFIER (":" typeName)? "=" expression ";";
-varStmt     -> "var" IDENTIFIER (":" typeName)? "=" expression ";";
-constStmt   -> "const" IDENTIFIER ":" typeName "=" expression ";";
 assignStmt  -> IDENTIFIER "=" expression ";";
 
 whereClause -> "where" (IDENTIFIER ":" typeName ( "+" typeName )* )+;
