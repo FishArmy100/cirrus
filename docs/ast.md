@@ -10,12 +10,16 @@ typeName  	-> IDENTIFIER genericArgs? ( "." IDENTIFIER genericArgs? )*;
 arguments       -> expression ("," expression)* ","?;
 genericParams   -> "[" IDENTIFIER ( "," IDENTIFIER )* "," "]";
 genericArgs     -> "[" typeName ("," typeName)* ","? "]";
-parameters      -> IDENTIFIER ":" typeName ("=" expression)? (IDENTIFIER ":" typeName ("=" expression)?)* ","?;
+parameters      -> "var"? IDENTIFIER ":" typeName ("=" expression)? (IDENTIFIER ":" typeName ("=" expression)?)* ","?;
+
+patternFields	-> IDENTIFIER (":" pattern) ("," IDENTIFIER (":" pattern))*;
+pattern			-> NUMBER | STRING | IDENTIFIER ("." IDENTIFIER)* ("(" pattern ")")? | typeName ( "{" patternField "}" | );
+
 ```
 
 ### Expressions
 ```fs
-lambda -> // ...
+lambda -> (IDENTIFIER | "|" (IDENTIFIER (":" typeName)?) ("," IDENTIFIER (":" typeName)?)* ","? "|" ("->" typeName)?) "=>" expression
 primary -> NUMBER
         | STRING
         | IDENTIFIER
@@ -24,39 +28,49 @@ primary -> NUMBER
         | "true"
         | "false"
         | blockExpr
-		| lambda
+        | lambda
         | typeName "." IDENTIFIER
 		| typeName "{" (IDENTIFIER ":" expression ("," IDENTIFIER ":" expression)? "," )? "}";
 
 call        -> primary ( genericArgs "(" arguments? ")" | "." IDENTIFIER )*;
 unary       -> ("!" | "-") unary | call;
 factor      -> unary ( ( "/" | "*" ) unary )* ;
-term        -> factor ( ( "/" | "*" ) factor )* ;
+term        -> factor ( ( "+" | "-" ) factor )* ;
 comparison  -> term ( ( ">" | "<" | ">=" | "<=" ) term )* ;
 equality    -> comparison ( ( "==" | "!=" ) comparison )* ;
 logicalAnd  -> equality ( "||" equality)* ;
 logicalOr   -> logicalAnd ( "&&" logicalAnd)* ;
 
-blockExpr   -> "{" statement* expression "}"
+blockExpr   -> "{" statement* expression? "}";
 
-ifExpr      -> "if" expression blockExpr ("else" "if" expression blockExpr )* ("else" blockExpr)?;
-matchExpr   -> // ...
+ifCond		-> expression | "let" pattern "=" expression ("&&" ifCond )?;
+ifExpr      -> "if" ifCond blockExpr ("else" (ifExpr | blockExpr))?;
+matchExpr   -> "match" expression "{" pattern "=>" expression ("," pattern "=>" expression)* ","? "}";
 
 expression  -> logicalOr | ifExpr | matchExpr;
 ```
 
 ### Statements
 ```fs
+useStmt 	-> "use" IDENTIFIER ("." IDENTIFIER)* ("." "*")? ";";
+exprStmt	-> expression ";";
 letStmt     -> "let" IDENTIFIER (":" typeName)? "=" expression ";";
 varStmt     -> "var" IDENTIFIER (":" typeName)? "=" expression ";";
 constStmt   -> "const" IDENTIFIER ":" typeName "=" expression ";";
 assignStmt  -> IDENTIFIER "=" expression ";";
 
 whereClause -> "where" (IDENTIFIER ":" typeName ( "+" typeName )* )+;
-fnDecl      -> "pub"? "fn" IDENTIFIER genericParams? "(" parameters? ")" ("->" typeName)? whereClause? "{" statement* expression? "}";
-structDecl  -> "pub"? "struct" IDENTIFIER genericParams? "{" parameters? "}";
-interfaceDecl -> "pub"? "interface" IDENTIFIER genericParams? "{" ( "fn" IDENTIFIER genericParams? "(" parameters? ")" ( "->" typeName)? whereClause? ";")* "}";
+fnDecl      -> "fn" IDENTIFIER genericParams? "(" parameters? ")" ("->" typeName)? whereClause? "{" statement* expression? "}";
 
-implStmt    -> "impl" genericParams typeName "{" (fnDecl | constStmt)* "}";
-implInterface -> "impl" genericParams typeName "for" typeName "{" fnDecl* "}";
+structParam	-> "pub"? "var"? IDENTIFIER ":" typeName ("=" expression)?
+structDecl  -> "struct" IDENTIFIER genericParams? "{" ( structParam ("," structParam)* )? "}";
+interfaceDecl -> "interface" IDENTIFIER genericParams? "{" ( "fn" IDENTIFIER genericParams? "(" parameters? ")" ( "->" typeName)? whereClause? ";")* "}";
+enumDecl	-> "enum" IDENTIFIER genericParams? whereClause? "{" IDENTIFIER ( "(" typeName ")" | "{" parameters? "}") "}";
+typeDecl	-> "type" IDENTIFIER genericParams? "=" typeName ";";
+
+implStmt    -> "impl" genericParams typeName ("for") typeName "{" (fnDecl | constStmt)* "}";
+
+statement	-> letStmt | varStmt | constStmt | assignStmt | ifExpr | matchExpr | blockExpr | exprStmt | useStmt;
+declaration	-> "pub" (fnDecl | structDecl | interfaceDecl | enumDecl | typeDecl | letStmt | varStmt | constStmt | useStmt) | implStmt;
+program -> declStmt*;
 ```

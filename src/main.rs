@@ -1,6 +1,7 @@
 use std::{fs::File, io::Read};
 
 pub mod lexing;
+pub mod parsing;
 
 fn read_file(path: &str) -> Result<String, String> 
 {
