@@ -26,7 +26,7 @@ pub enum TokenType
     True,
     Type,
     Use,
-    Var,
+    Mut,
     Where,
     While,
     Yield,

@@ -2,7 +2,7 @@ use either::Either;
 
 use crate::{lexing::token::Token, utils::PrettyPrinter};
 
-use super::{*, stmt::*};
+use super::{LetCondition, Pattern, Statement, TypeName};
 
 #[derive(Debug, Clone)]
 pub struct LambdaParam
@@ -86,8 +86,10 @@ pub struct BinaryExpr
 #[derive(Debug, Clone)]
 pub struct BlockExpr
 {
+    pub open_brace: Token,
     pub statements: Vec<Statement>,
     pub expression: Option<Box<Expression>>,
+    pub close_brace: Token,
 }
 
 #[derive(Debug, Clone)]
@@ -105,6 +107,15 @@ pub struct ConstructionExpr
     pub open_brace: Token,
     pub args: Vec<ConstructionArg>,
     pub close_brace: Token,
+}
+
+#[derive(Debug, Clone)]
+pub struct EnumConstructionExpr
+{
+    pub type_name: TypeName,
+    pub open_paren: Token,
+    pub expression: Box<Expression>,
+    pub close_paren: Token,
 }
 
 #[derive(Debug, Clone)]
@@ -134,25 +145,10 @@ pub struct MatchExpr
 }
 
 #[derive(Debug, Clone)]
-pub enum IfCond
-{
-    Expression(Box<Expression>),
-    Pattern 
-    {
-        let_tok: Token,
-        pattern: Pattern,
-        equal: Token,
-        expression: Box<Expression>,
-        and: Option<Token>,
-        other_cond: Box<IfCond>,
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct IfExpr
 {
     pub if_tok: Token,
-    pub condition: IfCond,
+    pub condition: LetCondition,
     pub block: BlockExpr,
     pub else_branch: Option<ElseBranch>
 }
@@ -184,6 +180,7 @@ pub enum Expression
     BlockExpr(BlockExpr),
     TypeValue(TypeValueExpr),
     Construction(ConstructionExpr),
+    EnumConstruction(EnumConstructionExpr),
     Call(CallExpr),
     Access(AccessExpr),
     Index(IndexExpr),

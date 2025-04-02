@@ -24,8 +24,8 @@ fn read_file(path: &str) -> Result<String, String>
 
 fn main() 
 {
-    // let text = read_file("tests/test.crs").unwrap();
-    let text = "(a => a * a)(5)";
+    let text = read_file("tests/expression.crs").unwrap();
+    // let text = "utils.Option[Int](1)";
     let tokens = lexing::lex_text(&text);
 
     if tokens.errors.len() > 0 

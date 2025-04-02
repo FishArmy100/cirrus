@@ -7,9 +7,14 @@ pub use stmt::*;
 use crate::lexing::token::Token;
 
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum TypeName
 {
-    Identifier(Token, Option<GenericArgs>),
+    Identifier
+    {
+        name: Token,
+        args: Option<GenericArgs>,
+    },
     Array
     {
         open_bracket: Token,
@@ -24,19 +29,46 @@ pub enum TypeName
         close_paren: Token,
         arrow: Token,
         return_type: Box<TypeName>,
+    },
+    Access 
+    {
+        inner: Box<TypeName>,
+        dot: Token,
+        name: Token,
+        args: Option<GenericArgs>,
     }
 }
 
 impl TypeName
 {
+    pub fn is_access(&self) -> bool
+    {
+        match self 
+        {
+            Self::Access { inner: _, dot: _, name: _, args: _ } => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_definite(&self) -> bool
+    {
+        match self 
+        {
+            TypeName::Identifier { name: _, args } => args.as_ref().is_some_and(|a| a.args.iter().map(|a| a.is_definite()).any(|t| t)),
+            TypeName::Array { open_bracket: _, close_bracket: _, type_name: _ } => true,
+            TypeName::Function { fn_tok: _, open_paren: _, parameter_types: _, close_paren: _, arrow: _, return_type: _ } => true,
+            TypeName::Access { inner, dot: _, name: _, args } => inner.is_definite() || args.as_ref().is_some_and(|a| a.args.iter().map(|a| a.is_definite()).any(|t| t)),
+        }
+    }
+
     pub fn pretty_print(&self) -> String 
     {
         match self
         {
-            TypeName::Identifier(token, generic_args) =>
+            TypeName::Identifier { name, args } =>
             {
-                let mut text = token.value.as_ref().unwrap().to_string();
-                if let Some(args) = generic_args
+                let mut text = name.value.as_ref().unwrap().to_string();
+                if let Some(args) = args
                 {
                     text += &format!("[{}]", args.args.iter().map(|a| a.pretty_print()).join(", "));
                 }
@@ -51,6 +83,16 @@ impl TypeName
             {
                 format!("fn({}) -> {}", parameter_types.iter().map(|t| t.pretty_print()).join(", "), return_type.pretty_print())
             },
+            TypeName::Access { inner, dot: _, name, args } => 
+            {
+                let mut text = format!("{}.{}", inner.pretty_print(), name.value.as_ref().unwrap().to_string());
+                if let Some(args) = args 
+                {
+                    text += &format!("[{}]", args.args.iter().map(|a| a.pretty_print()).join(", "));
+                }
+
+                text
+            }
         }
     }
 }
@@ -93,29 +135,55 @@ pub struct Parameter
 #[derive(Debug, Clone)]
 pub struct PatternField
 {
-    pub name: Token,
-    pub colon: Token,
-    pub pattern: Pattern,
+    pub mut_tok: Option<Token>,
+    pub id: Token,
+    pub colon: Option<Token>,
+    pub inner: Option<Box<Pattern>>
 }
 
 #[derive(Debug, Clone)]
 pub enum Pattern 
 {
-    Number(Token),
-    String(Token),
-    Identifier(Vec<Token>),
-    EnumPattern
+    Literal(Token),
+    Identifier
     {
-        id_list: Vec<Token>,
+        mut_tok: Option<Token>,
+        id: Token,
+    },
+    TypeName(TypeName),
+    EnumConstruct
+    {
+        type_name: TypeName,
         open_paren: Token,
-        pattern: Box<Pattern>,
+        inner: Box<Pattern>,
         close_paren: Token,
     },
-    StructPattern
+    StructConstruct
     {
-        id_list: Vec<Token>,
+        type_name: TypeName,
         open_brace: Token,
         patterns: Vec<PatternField>,
         close_brace: Token,
     },
+    ArrayConstruct
+    {
+        open_bracket: Token,
+        patterns: Vec<Pattern>,
+        close_bracket: Token,
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum LetCondition
+{
+    Expression(Box<Expression>),
+    Pattern 
+    {
+        let_tok: Token,
+        pattern: Pattern,
+        equal: Token,
+        expression: Box<Expression>,
+        and: Option<Token>,
+        other_cond: Option<Box<LetCondition>>,
+    }
 }

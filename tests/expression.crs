@@ -1,0 +1,5 @@
+
+if let Foo { a: 0, b } = Foo { a: 0, b: 7 }
+{
+    println("Got this: '" + b + "'!");
+}

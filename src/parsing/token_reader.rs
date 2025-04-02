@@ -2,6 +2,7 @@ use crate::lexing::token::{Token, TokenType};
 
 use super::{ParserError, ParserResult};
 
+#[derive(Debug, Clone)]
 pub struct TokenReader<'a>
 {
     tokens: &'a [Token],
@@ -81,6 +82,11 @@ impl<'a> TokenReader<'a>
     pub fn peek_is(&self, count: usize, t: TokenType) -> bool
     {
         self.peek(count).is_some_and(|token| token.token_type == t)
+    }
+
+    pub fn peek_sequence_is(&self, count: usize, types: &[TokenType]) -> bool
+    {
+        (0..types.len()).map(|i| self.peek_is(count + i, types[i])).all(|b| b)
     }
 
     pub fn previous(&self) -> Option<Token>
