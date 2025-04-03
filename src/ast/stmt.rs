@@ -1,6 +1,6 @@
 use either::Either;
 
-use crate::lexing::token::{Token, TokenType};
+use crate::lexing::token::Token;
 
 use super::{BlockExpr, Expression, GenericParams, IfExpr, LetCondition, MatchExpr, Pattern, TypeName};
 
@@ -8,8 +8,9 @@ use super::{BlockExpr, Expression, GenericParams, IfExpr, LetCondition, MatchExp
 pub struct UseStmt
 {
     pub use_tok: Token,
-    pub ids: Vec<TokenType>,
-    pub star: Option<TokenType>,
+    pub ids: Vec<Token>,
+    pub star: Option<Token>,
+    pub semi_colon: Token
 }
 
 #[derive(Debug, Clone)]
@@ -34,7 +35,6 @@ pub enum LetBinding
 pub struct LetStmt
 {
     pub let_tok: Token,
-    pub pattern: Pattern,
     pub binding: LetBinding,
     pub type_name: Option<(Token, TypeName)>, // Token is the colon
     pub equal: Token,
@@ -72,6 +72,7 @@ pub enum FnParam
 {
     Normal
     {
+        mut_tok: Option<Token>,
         id: Token,
         colon: Token,
         type_name: TypeName,
@@ -80,7 +81,7 @@ pub enum FnParam
     SelfParam
     {
         mut_tok: Option<Token>,
-        self_tok: Option<Token>,
+        self_tok: Token,
     }
 }
 
@@ -92,7 +93,7 @@ pub struct FnDecl
     pub generic_params: Option<GenericParams>,
     pub open_paren: Token,
     pub params: Vec<FnParam>,
-    pub close_param: Token,
+    pub close_paren: Token,
     pub arrow: Token,
     pub return_type: TypeName,
     pub where_clause: Option<WhereClause>,
@@ -113,12 +114,12 @@ pub struct StructMember
 #[derive(Debug, Clone)]
 pub struct StructDecl
 {
-    pub struct_tok: Option<Token>,
+    pub struct_tok: Token,
     pub id: Token,
     pub generic_params: Option<GenericParams>,
     pub where_clause: Option<WhereClause>,
     pub open_brace: Token,
-    pub params: Vec<StructMember>,
+    pub members: Vec<StructMember>,
     pub close_brace: Token,
 }
 
@@ -131,6 +132,7 @@ pub struct InterfaceDecl
     pub where_clause: Option<WhereClause>,
     pub open_brace: Token,
     pub members: Vec<Statement>,
+    pub close_brace: Token,
 }
 
 #[derive(Debug, Clone)]
@@ -170,7 +172,7 @@ pub struct EnumDecl
     pub id: Token,
     pub generic_params: Option<GenericParams>,
     pub where_clause: Option<WhereClause>,
-    pub open_brace: Option<Token>,
+    pub open_brace: Token,
     pub members: Vec<EnumMember>,
     pub close_brace: Token,
 }
@@ -180,8 +182,10 @@ pub struct TypeDecl
 {
     pub type_tok: Token,
     pub id: Token,
+    pub generic_params: Option<GenericParams>,
     pub equal: Token,
     pub type_name: TypeName,
+    pub semi_colon: Token,
 }
 
 #[derive(Debug, Clone)]
@@ -207,6 +211,14 @@ pub struct BreakStmt
 pub struct ContinueStmt
 {
     pub continue_tok: Token,
+    pub semi_colon: Token,
+}
+
+#[derive(Debug, Clone)]
+pub struct ReturnStmt
+{
+    pub return_tok: Token,
+    pub expression: Option<Expression>,
     pub semi_colon: Token,
 }
 
@@ -245,6 +257,16 @@ pub enum Declaration
 #[derive(Debug, Clone)]
 pub enum Statement
 {
+    While(WhileStmt),
+    For(ForStmt),
+    Return(ReturnStmt),
+    Continue(ContinueStmt),
+    Break(BreakStmt),
+    TypeDecl(TypeDecl),
+    EnumDecl(EnumDecl),
+    InterfaceDecl(InterfaceDecl),
+    StructDecl(StructDecl),
+    FnDecl(FnDecl),
     Let(LetStmt),
     Assign(AssignStmt),
     If(IfExpr),
@@ -252,4 +274,10 @@ pub enum Statement
     Block(BlockExpr),
     Expression(ExpressionStmt),
     Use(UseStmt),
+}
+
+pub struct Program
+{
+    pub declarations: Vec<Statement>,
+    pub eof: Token,
 }

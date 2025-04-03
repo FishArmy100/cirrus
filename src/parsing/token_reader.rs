@@ -176,4 +176,13 @@ impl<'a> TokenReader<'a>
             None => Err(ParserError::ExpectedToken(t, self.current()))
         }
     }
+
+    pub fn expect_many(&mut self, tokens: &[TokenType]) -> ParserResult<Token>
+    {
+        match self.check_many(tokens)
+        {
+            Some(token) => Ok(token),
+            None => Err(ParserError::ExpectedTokens(tokens.to_vec(), self.current()))
+        }
+    }
 }

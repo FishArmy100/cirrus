@@ -1,6 +1,6 @@
 use crate::{ast::*, lexing::token::TokenType};
 
-use super::{token_reader::TokenReader, ParserError, ParserResult};
+use super::{parse_generic_args, token_reader::TokenReader, ParserError, ParserResult};
 
 pub fn peek_type(reader: &TokenReader) -> Option<(TypeName, usize)>
 {
@@ -42,7 +42,7 @@ pub fn is_type_and<F>(reader: &TokenReader, f: F) -> Option<usize>
     }
 }
 
-fn expect_type_name(reader: &mut TokenReader) -> ParserResult<TypeName>
+pub fn expect_type_name(reader: &mut TokenReader) -> ParserResult<TypeName>
 {
     if let Some(type_name) = parse_type_name(reader)?
     {
@@ -132,37 +132,4 @@ fn parse_fn_type(reader: &mut TokenReader) -> ParserResult<TypeName>
         arrow, 
         return_type: Box::new(return_type)
     })
-}
-
-fn parse_generic_args(reader: &mut TokenReader) -> ParserResult<Option<GenericArgs>>
-{
-    let Some(open_bracket) = reader.check(TokenType::OpenBracket) else {
-        return Ok(None);
-    };
-
-    let mut types = vec![];
-    while !reader.current_is(&[TokenType::CloseBracket])
-    {
-        let Some(type_name) = parse_type_name(reader)? else {
-            return Err(ParserError::ExpectedType(reader.current()));
-        };
-
-        types.push(type_name);
-
-        if !reader.current_is(&[TokenType::CloseBracket, TokenType::Comma])
-        {
-            return Err(ParserError::ExpectedToken(TokenType::CloseBracket, reader.current()));
-        }
-
-        let _ = reader.check(TokenType::Comma); // makes sure to skip the comma
-    }
-
-    let close_bracket = reader.expect(TokenType::CloseBracket)?;
-    let args = GenericArgs {
-        open_bracket,
-        args: types,
-        close_bracket
-    };
-
-    Ok(Some(args))
 }

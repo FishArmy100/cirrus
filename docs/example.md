@@ -154,3 +154,50 @@ fn main()
     }
 }
 ```
+
+### Fibonacci Example:
+```rs
+use Option.*;
+pub enum Option<T>
+{
+    Some(T),
+    None
+}
+
+pub type Iter<T> = fn() -> Option<T>;
+
+pub interface Iterable<T>
+{
+    pub fn iter(self) -> Iter<T>;
+}
+
+impl<T> Iterable<T> for []T
+{
+    fn iter(self) -> Iter<T>
+    {
+        let mut i = 0;
+        || => { 
+            if i < self.length()
+            {
+                i += 1;
+                (self[i - 1])
+            }
+            else 
+            {
+                None
+            }
+        }
+    }
+}
+
+let items: [Int] = [4, 5, 6, 7];
+
+fn main()
+{
+    let iter = items.iter();
+    while let Some(item) = iter()
+    {
+        println(item.to_string());
+    }
+}
+```

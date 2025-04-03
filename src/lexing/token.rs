@@ -1,3 +1,15 @@
+
+pub const ASSIGNMENT_TOKENS: &'static [TokenType] = &[
+    TokenType::Equal,
+    TokenType::PlusEqual,
+    TokenType::MinusEqual,
+    TokenType::MultiplyEqual,
+    TokenType::DivideEqual,
+    TokenType::ModulusEqual,
+    TokenType::AndEqual,
+    TokenType::OrEqual,
+];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType
 {

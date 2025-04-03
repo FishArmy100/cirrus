@@ -19,6 +19,7 @@ pub enum ParserError
     ExpectedExpression(Option<Token>),
     ExpectedType(Option<Token>),
     ExpectedToken(TokenType, Option<Token>),
+    ExpectedTokens(Vec<TokenType>, Option<Token>),
     ExpectedALambdaParameter(Option<Token>),
     ExpectedStatement(Option<Token>),
     ExpectedPattern(Option<Token>),
@@ -84,6 +85,67 @@ fn parse_let_condition(reader: &mut TokenReader) -> ParserResult<Option<LetCondi
         };
 
         Ok(Some(LetCondition::Expression(Box::new(expression))))
+    }
+}
+
+pub fn parse_generic_args(reader: &mut TokenReader) -> ParserResult<Option<GenericArgs>>
+{
+    let Some(open_bracket) = reader.check(TokenType::OpenBracket) else {
+        return Ok(None);
+    };
+
+    let mut types = vec![];
+    while !reader.current_is(&[TokenType::CloseBracket])
+    {
+        let Some(type_name) = parse_type_name(reader)? else {
+            return Err(ParserError::ExpectedType(reader.current()));
+        };
+
+        types.push(type_name);
+
+        if !reader.current_is(&[TokenType::CloseBracket, TokenType::Comma])
+        {
+            return Err(ParserError::ExpectedToken(TokenType::CloseBracket, reader.current()));
+        }
+
+        let _ = reader.check(TokenType::Comma); // makes sure to skip the comma
+    }
+
+    let close_bracket = reader.expect(TokenType::CloseBracket)?;
+    let args = GenericArgs {
+        open_bracket,
+        args: types,
+        close_bracket
+    };
+
+    Ok(Some(args))
+}
+
+pub fn parse_generic_params(reader: &mut TokenReader) -> ParserResult<Option<GenericParams>>
+{
+    let Some(open_bracket) = reader.check(TokenType::OpenBracket) else {
+        return Ok(None)
+    };
+
+    let mut params = vec![];
+    while let Some(id) = reader.check(TokenType::Identifier)
+    {
+        params.push(id);
+        if !reader.check(TokenType::Comma).is_some() { break; }
+    }
+
+    let close_bracket = reader.expect(TokenType::CloseBracket)?;
+    Ok(Some(GenericParams { open_bracket, params, close_bracket }))
+}
+
+pub fn expect_ast_item<P, R, E>(reader: &mut TokenReader, predicate: P, error: E) -> ParserResult<R>
+    where P : Fn(&mut TokenReader) -> ParserResult<Option<R>>,
+          E : Fn(Option<Token>) -> ParserError
+{
+    match predicate(reader)?
+    {
+        Some(r) => Ok(r),
+        None => Err(error(reader.current()))
     }
 }
 

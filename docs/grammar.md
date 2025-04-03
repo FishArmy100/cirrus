@@ -84,7 +84,7 @@ breakStmt   -> "continue"+ ";";
 forStmt     -> "for" pattern "in" expression blockExpr;
 whileStmt   -> "while" letCondition blockExpr;
 
-statement	-> letStmt | varStmt | constStmt | assignStmt | ifExpr | matchExpr | blockExpr | exprStmt | useStmt;
+statement	-> letStmt | assignStmt | ifExpr | matchExpr | blockExpr | exprStmt | useStmt;
 declaration	-> "pub" (fnDecl | structDecl | interfaceDecl | enumDecl | typeDecl | letStmt | constStmt | useStmt) | implStmt;
-program -> declStmt*;
+program -> declStmt* EOF;
 ```
