@@ -1,6 +1,6 @@
 use either::Either;
 
-use crate::{lexing::token::Token, utils::PrettyPrinter};
+use crate::lexing::token::Token;
 
 use super::{LetCondition, Pattern, Statement, TypeName};
 

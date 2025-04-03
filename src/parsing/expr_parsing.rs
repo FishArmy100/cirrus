@@ -55,13 +55,68 @@ pub fn parse_expression(reader: &mut TokenReader) -> ParserResult<Option<Express
     {
         Ok(Some(if_expr))
     }
+    else if let Some(match_expr) = parse_match(reader)?
+    {
+        Ok(Some(match_expr))
+    }
     else 
     {
         Ok(None)    
     }
 }
 
-pub fn parse_if(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
+fn parse_match(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
+{
+    if let Some(match_tok) = reader.check(TokenType::Match)
+    {
+        let expression = expect_expression(reader, parse_expression)?;
+        let open_brace = reader.expect(TokenType::OpenBrace)?;
+        let branches = parse_match_branches(reader)?;
+        let close_brace = reader.expect(TokenType::CloseBrace)?;
+
+        Ok(Some(Expression::MatchExpr(MatchExpr { 
+            match_tok, 
+            expression: Box::new(expression), 
+            open_brace, 
+            branches, 
+            close_brace
+        })))
+    }
+    else  
+    {
+        Ok(None)    
+    }
+}
+
+fn parse_match_branches(reader: &mut TokenReader) -> ParserResult<Vec<MatchBranch>>
+{
+    let mut branches = vec![];
+    while !reader.current_is(&[TokenType::CloseBrace])
+    {
+        let branch = parse_match_branch(reader)?;
+        branches.push(branch);
+
+        if !reader.current_is(&[TokenType::CloseBrace, TokenType::Comma])
+        {
+            return Err(ParserError::ExpectedToken(TokenType::CloseBrace, reader.current()));
+        }
+
+        let _ = reader.check(TokenType::Comma); // makes sure to skip the comma
+    }
+
+    Ok(branches)
+}
+
+fn parse_match_branch(reader: &mut TokenReader) -> ParserResult<MatchBranch>
+{
+    let pattern = expect_pattern(reader)?;
+    let arrow = reader.expect(TokenType::ThickArrow)?;
+    let expression = expect_expression(reader, parse_expression)?;
+
+    Ok(MatchBranch { pattern, arrow, expression: Box::new(expression) })
+}
+
+fn parse_if(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
 {
     if let Some(if_tok) = reader.check(TokenType::If)
     {

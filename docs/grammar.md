@@ -63,10 +63,11 @@ expression  -> logicalOr | ifExpr | matchExpr;
 ```fs
 useStmt 	-> "use" IDENTIFIER ("." IDENTIFIER)* ("." "*")? ";";
 exprStmt	-> expression ";";
-letStmt     -> "let" pattern (":" typeName)? "=" expression (";" | "else" blockExpr);
+letStmt     -> "let" pattern (":" typeName)? "=" expression ("else" blockExpr)? ";";
 assignStmt  -> typeName? ("." IDENTIFIER)* "=" expression ";";
 
-whereClause -> "where" (IDENTIFIER ":" typeName ( "+" typeName )* )+;
+whereSubClause  -> IDENTIFIER ":" typeName ( "+" typeName)*;
+whereClause -> "where" whereSubClause ("," whereSubClause) ",";
 fnDecl      -> "fn" IDENTIFIER genericParams? "(" parameters? ")" ("->" typeName)? whereClause? "{" statement* expression? "}";
 
 structParam	-> "pub"? "mut"? IDENTIFIER ":" typeName ("=" expression)?

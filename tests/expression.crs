@@ -1,5 +1,7 @@
 
-if let Foo { a: 0, b } = Foo { a: 0, b: 7 }
+match Foo { a: 10, bar: "Hi!"}
 {
-    println("Got this: '" + b + "'!");
-}
+    Foo { a: 10 } => println("Branch A!"),
+    Foo { a, bar: "Bye!" } => println("Branch B!"),
+    _ => println("Did not match...")
+};
