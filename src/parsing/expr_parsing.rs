@@ -388,11 +388,6 @@ fn parse_construction_expression(reader: &mut TokenReader) -> ParserResult<Optio
 {
     if let Some(offset) = is_type(reader)
     {
-        if !reader.peek_sequence_is(offset, &[TokenType::OpenBrace, TokenType::Identifier, TokenType::Colon])
-        {
-            return Ok(None)
-        }
-
         if reader.peek_is(offset, TokenType::OpenBrace)
         {
             let type_name = parse_type_name(reader)?.unwrap();

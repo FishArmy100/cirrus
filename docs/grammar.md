@@ -20,6 +20,7 @@ pattern			-> NUMBER
                 | ("mut"? IDENTIFIER) 
                 | typeName ("(" pattern ")")?  // destructured enum
                 | typeName ( "{" patternFields? "}"  // destructured struct
+                | typeName "." IDENTIFIER
                 | "[" ( pattern ("," pattern)* )? "]" ); // destructured array
 
 letCondition    -> expression | "let" pattern "=" expression ("&&" letCondition )?;

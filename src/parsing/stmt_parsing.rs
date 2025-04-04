@@ -275,9 +275,13 @@ fn parse_impl_member(reader: &mut TokenReader) -> ParserResult<Option<(Option<To
     {
         Err(ParserError::ExpectedTokens(vec![TokenType::Let, TokenType::Fn, TokenType::Type], reader.current()))
     }
+    else if let Some(member) = member
+    {
+        Ok(Some((pub_tok, member)))    
+    }
     else 
     {
-        Ok(Some((pub_tok, member.unwrap())))    
+        Ok(None)    
     }
 }
 
@@ -689,22 +693,14 @@ fn parse_use_stmt(reader: &mut TokenReader) -> ParserResult<Option<UseStmt>>
 
 fn parse_assignment(reader: &mut TokenReader) -> ParserResult<Option<AssignStmt>>
 {
-    if reader.is_sequence(&[TokenType::Identifier, TokenType::Equal]) ||
-       reader.is_sequence(&[TokenType::Identifier, TokenType::PlusEqual]) ||
-       reader.is_sequence(&[TokenType::Identifier, TokenType::MinusEqual]) ||
-       reader.is_sequence(&[TokenType::Identifier, TokenType::MultiplyEqual]) ||
-       reader.is_sequence(&[TokenType::Identifier, TokenType::DivideEqual]) ||
-       reader.is_sequence(&[TokenType::Identifier, TokenType::ModulusEqual]) ||
-       reader.is_sequence(&[TokenType::Identifier, TokenType::AndEqual]) ||
-       reader.is_sequence(&[TokenType::Identifier, TokenType::OrEqual])
+    if let Some(value) = is_expression_and(reader, |r| r.current_is(ASSIGNMENT_TOKENS))
     {
-        let identifier = reader.advance().unwrap();
         let equal = reader.advance().unwrap();
         let expression = expect_expression(reader, parse_expression)?;
         let semi_colon = reader.expect(TokenType::SemiColon)?;
 
         Ok(Some(AssignStmt {
-            identifier,
+            value,
             equal,
             expression,
             semi_colon
@@ -712,6 +708,6 @@ fn parse_assignment(reader: &mut TokenReader) -> ParserResult<Option<AssignStmt>
     }
     else 
     {
-        Ok(None)    
+        Ok(None)
     }
 }

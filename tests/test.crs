@@ -1,6 +1,4 @@
-
-pub enum Player 
+fn check_row() -> bool
 {
-    X { name: String },
-    O { mut name: String = "Hello World!" }
+    1 == 2 && true
 }

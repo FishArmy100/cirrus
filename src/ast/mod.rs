@@ -150,7 +150,12 @@ pub enum Pattern
         mut_tok: Option<Token>,
         id: Token,
     },
-    TypeName(TypeName),
+    TypeValue
+    {
+        type_name: TypeName,
+        dot: Token,
+        id: Token,
+    },
     EnumConstruct
     {
         type_name: TypeName,

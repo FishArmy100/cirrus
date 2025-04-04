@@ -29,14 +29,19 @@ pub fn parse_pattern(reader: &mut TokenReader) -> ParserResult<Option<Pattern>>
         }
         
         if reader.peek_is(offset, TokenType::OpenParen)
-        {   
-            println!("Got here");
+        {
             let _ = reader.advance_count(offset); // move the reader to the current token
             let open_paren = reader.expect(TokenType::OpenParen)?;
             let inner = expect_pattern(reader)?;
             let close_paren = reader.expect(TokenType::CloseParen)?;
 
             return Ok(Some(Pattern::EnumConstruct { type_name, open_paren, inner: Box::new(inner), close_paren }));
+        }
+        
+        if let TypeName::Access { inner, dot, name, args: None } = type_name
+        {
+            let _ = reader.advance_count(offset);
+            return  Ok(Some(Pattern::TypeValue { type_name: *inner, dot, id: name }));
         }
     }
 

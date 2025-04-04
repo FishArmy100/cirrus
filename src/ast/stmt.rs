@@ -46,7 +46,7 @@ pub struct LetStmt
 #[derive(Debug, Clone)]
 pub struct AssignStmt
 {
-    pub identifier: Token,
+    pub value: Expression,
     pub equal: Token,
     pub expression: Expression,
     pub semi_colon: Token,

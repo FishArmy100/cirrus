@@ -35,7 +35,7 @@ pub struct Board
         [TileState.Empty, TileState.Empty, TileState.Empty],
         [TileState.Empty, TileState.Empty, TileState.Empty],
         [TileState.Empty, TileState.Empty, TileState.Empty],
-    ];
+    ]
 }
 
 impl Board
@@ -45,7 +45,7 @@ impl Board
         Self {}
     }
 
-    pub fn set(self, x: Int, y: Int, state: TileState)
+    pub fn set(self, x: Int, y: Int, state: TileState) -> Void
     {
         values[x][y] = state;
     }

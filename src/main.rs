@@ -22,7 +22,8 @@ fn read_file(path: &str) -> Result<String, String>
 
 fn main() 
 {
-    let text = read_file("tests/test.crs").unwrap();
+    let file_name = "tests/test.crs";
+    let text = read_file(file_name).unwrap();
     // let text = "utils.Option[Int](1)";
     let tokens = lexing::lex_text(&text);
 
@@ -44,7 +45,7 @@ fn main()
         Ok(Some(ast)) => println!("{:#?}", ast),
         Err(err) => 
         {
-            println!("{}", err.format(&tokens.text, "tests/test.crs"));
+            println!("{}", err.format(&tokens.text, file_name));
         }
     }
 }
