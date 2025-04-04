@@ -195,6 +195,7 @@ pub struct ImplStmt
     pub generic_params: Option<GenericParams>,
     pub type_name: TypeName,
     pub for_clause: Option<(Token, TypeName)>,
+    pub where_clause: Option<WhereClause>,
     pub open_brace: Token,
     pub members: Vec<(Option<Token>, Statement)>, // Optional pub on each statement
     pub close_brace: Token,
@@ -276,8 +277,9 @@ pub enum Statement
     Use(UseStmt),
 }
 
+#[derive(Debug, Clone)]
 pub struct Program
 {
-    pub declarations: Vec<Statement>,
+    pub declarations: Vec<Declaration>,
     pub eof: Token,
 }

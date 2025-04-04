@@ -53,11 +53,11 @@ pub fn parse_expression(reader: &mut TokenReader) -> ParserResult<Option<Express
     }
     else if let Some(if_expr) = parse_if(reader)?
     {
-        Ok(Some(if_expr))
+        Ok(Some(Expression::IfExpr(if_expr)))
     }
     else if let Some(match_expr) = parse_match(reader)?
     {
-        Ok(Some(match_expr))
+        Ok(Some(Expression::MatchExpr(match_expr)))
     }
     else 
     {
@@ -65,7 +65,7 @@ pub fn parse_expression(reader: &mut TokenReader) -> ParserResult<Option<Express
     }
 }
 
-fn parse_match(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
+pub fn parse_match(reader: &mut TokenReader) -> ParserResult<Option<MatchExpr>>
 {
     if let Some(match_tok) = reader.check(TokenType::Match)
     {
@@ -74,13 +74,13 @@ fn parse_match(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
         let branches = parse_match_branches(reader)?;
         let close_brace = reader.expect(TokenType::CloseBrace)?;
 
-        Ok(Some(Expression::MatchExpr(MatchExpr { 
+        Ok(Some(MatchExpr { 
             match_tok, 
             expression: Box::new(expression), 
             open_brace, 
             branches, 
             close_brace
-        })))
+        }))
     }
     else  
     {
@@ -116,7 +116,7 @@ fn parse_match_branch(reader: &mut TokenReader) -> ParserResult<MatchBranch>
     Ok(MatchBranch { pattern, arrow, expression: Box::new(expression) })
 }
 
-fn parse_if(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
+pub fn parse_if(reader: &mut TokenReader) -> ParserResult<Option<IfExpr>>
 {
     if let Some(if_tok) = reader.check(TokenType::If)
     {
@@ -127,32 +127,31 @@ fn parse_if(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
         {
             let else_branch = match parse_if(reader)?
             {
-                Some(Expression::IfExpr(if_expr)) => ElseBranch { 
+                Some(if_expr) => ElseBranch { 
                     else_tok, 
                     body: Either::Left(Box::new(if_expr)) 
                 },
                 None => ElseBranch { 
                     else_tok, 
                     body: Either::Right(expect_block_expression(reader)?)
-                },
-                _ => unreachable!()
+                }
             };
 
-            Ok(Some(Expression::IfExpr(IfExpr { 
+            Ok(Some(IfExpr { 
                 if_tok, 
                 condition, 
                 block, 
                 else_branch: Some(else_branch)
-            })))
+            }))
         }
         else 
         {
-            Ok(Some(Expression::IfExpr(IfExpr { 
+            Ok(Some(IfExpr { 
                 if_tok, 
                 condition, 
                 block, 
                 else_branch: None
-            })))
+            }))
         }
     }
     else 
@@ -318,7 +317,7 @@ fn parse_primary(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
     }
 }
 
-fn parse_block_expression(reader: &mut TokenReader) -> ParserResult<Option<BlockExpr>>
+pub fn parse_block_expression(reader: &mut TokenReader) -> ParserResult<Option<BlockExpr>>
 {
     if let Some(open_brace) = reader.check(TokenType::OpenBrace)
     {

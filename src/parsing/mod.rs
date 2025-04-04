@@ -5,12 +5,13 @@ pub mod stmt_parsing;
 pub mod pattern_parsing;
 
 use pattern_parsing::expect_pattern;
+use stmt_parsing::parse_declaration;
 pub use type_parsing::*;
 pub use expr_parsing::*;
 
 use token_reader::TokenReader;
 
-use crate::lexing::token::{Token, TokenType};
+use crate::lexing::token::{Token, TokenTextLocation, TokenType};
 use crate::ast::*;
 
 #[derive(Debug)]
@@ -24,14 +25,49 @@ pub enum ParserError
     ExpectedStatement(Option<Token>),
     ExpectedPattern(Option<Token>),
     ExpectedBlock(Option<Token>),
+    ExpectedDeclaration(Option<Token>),
+}
+
+impl ParserError
+{
+    pub fn format(&self, text: &[char], file: &str) -> String 
+    {
+        let line_count = text.iter().filter(|f| **f == '\n').count() + 1;
+        let end_loc = TokenTextLocation { line: line_count, column: 1 };
+        
+        let formatter = |token: &Option<Token>, error: &str| { 
+            format!("[{}:{}]: {}", file, token.as_ref().map_or(end_loc, |t| t.get_loc(text)), error)
+        };
+
+        match self
+        {
+            ParserError::ExpectedExpression(token) => formatter(token, "Expected an expression"),
+            ParserError::ExpectedType(token) => formatter(token, "Expected a type"),
+            ParserError::ExpectedToken(token_type, token) => formatter(token, &format!("Expected token {:?} ", token_type)),
+            ParserError::ExpectedTokens(token_types, token) => formatter(token, &format!("Expected one of token {:?} ", token_types.iter().map(|t| format!("{:?}", t)).collect::<Vec<_>>())),
+            ParserError::ExpectedALambdaParameter(token) => formatter(token, "Expected a lambda parameter"),
+            ParserError::ExpectedStatement(token) => formatter(token, "Expected a statement"),
+            ParserError::ExpectedPattern(token) => formatter(token, "Expected a pattern"),
+            ParserError::ExpectedBlock(token) => formatter(token, "Expected a block expression"),
+            ParserError::ExpectedDeclaration(token) => formatter(token, "Expected a declaration"),
+        }
+    }
 }
 
 pub type ParserResult<T> = Result<T, ParserError>;
 
-pub fn parse(tokens: Vec<Token>) -> ParserResult<Option<Expression>>
+pub fn parse(tokens: Vec<Token>) -> ParserResult<Option<Program>>
 {
     let Some(mut reader) = TokenReader::new(&tokens, None) else { return Ok(None) };
-    parse_expression(&mut reader)
+    let mut declarations = vec![];
+    while let Some(declaration) = parse_declaration(&mut reader)?
+    {
+        declarations.push(declaration);
+    }
+
+    let eof = reader.expect(TokenType::EOF)?;
+
+    Ok(Some(Program { declarations, eof }))
 }
 
 fn expect_let_condition(reader: &mut TokenReader) -> ParserResult<LetCondition>
@@ -88,7 +124,7 @@ fn parse_let_condition(reader: &mut TokenReader) -> ParserResult<Option<LetCondi
     }
 }
 
-pub fn parse_generic_args(reader: &mut TokenReader) -> ParserResult<Option<GenericArgs>>
+fn parse_generic_args(reader: &mut TokenReader) -> ParserResult<Option<GenericArgs>>
 {
     let Some(open_bracket) = reader.check(TokenType::OpenBracket) else {
         return Ok(None);
@@ -121,7 +157,7 @@ pub fn parse_generic_args(reader: &mut TokenReader) -> ParserResult<Option<Gener
     Ok(Some(args))
 }
 
-pub fn parse_generic_params(reader: &mut TokenReader) -> ParserResult<Option<GenericParams>>
+fn parse_generic_params(reader: &mut TokenReader) -> ParserResult<Option<GenericParams>>
 {
     let Some(open_bracket) = reader.check(TokenType::OpenBracket) else {
         return Ok(None)
@@ -138,7 +174,7 @@ pub fn parse_generic_params(reader: &mut TokenReader) -> ParserResult<Option<Gen
     Ok(Some(GenericParams { open_bracket, params, close_bracket }))
 }
 
-pub fn expect_ast_item<P, R, E>(reader: &mut TokenReader, predicate: P, error: E) -> ParserResult<R>
+fn expect_ast_item<P, R, E>(reader: &mut TokenReader, predicate: P, error: E) -> ParserResult<R>
     where P : Fn(&mut TokenReader) -> ParserResult<Option<R>>,
           E : Fn(Option<Token>) -> ParserError
 {

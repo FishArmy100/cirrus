@@ -126,6 +126,30 @@ pub struct Token
     pub value: Option<TokenValue>
 }
 
+impl Token 
+{
+    pub fn get_loc(&self, text: &[char]) -> TokenTextLocation
+    {
+        let mut line = 1;
+        let mut column = 1;
+
+        for i in 0..=self.pos.begin
+        {
+            if text[i] == '\n'
+            {
+                line += 1;
+                column = 0;
+            }
+            else 
+            {
+                column += 1;
+            }
+        }
+
+        TokenTextLocation { line, column }
+    }
+}
+
 impl std::fmt::Display for Token 
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result 
@@ -137,6 +161,21 @@ impl std::fmt::Display for Token
             Some(TokenValue::String(v)) => write!(f, "{:?}({})", self.token_type, v),
             None => write!(f, "{:?}", self.token_type)
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct TokenTextLocation
+{
+    pub line: usize,
+    pub column: usize,
+}
+
+impl std::fmt::Display for TokenTextLocation
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result 
+    {
+        write!(f, "{}:{}", self.line, self.column)
     }
 }
 

@@ -2,7 +2,7 @@ use either::Either;
 
 use crate::{ast::*, lexing::token::{Token, TokenType, ASSIGNMENT_TOKENS}};
 
-use super::{expect_block_expression, expect_expression, expect_type_name, is_expression_and, parse_expression, parse_generic_args, parse_generic_params, pattern_parsing::expect_pattern, token_reader::TokenReader, ParserError, ParserResult};
+use super::{expect_ast_item, expect_block_expression, expect_expression, expect_let_condition, expect_type_name, is_expression_and, parse_block_expression, parse_expression, parse_generic_params, parse_if, parse_match, pattern_parsing::expect_pattern, token_reader::TokenReader, ParserError, ParserResult};
 
 pub fn expect_statement(reader: &mut TokenReader) -> ParserResult<Statement>
 {
@@ -18,13 +18,140 @@ pub fn expect_statement(reader: &mut TokenReader) -> ParserResult<Statement>
 
 pub fn parse_statement(reader: &mut TokenReader) -> ParserResult<Option<Statement>>
 {
-    if let Some(expr) = parse_expression_stmt(reader)?
+    if let Some(stmt) = parse_while(reader)?
     {
-        Ok(Some(expr))
+        Ok(Some(Statement::While(stmt)))
     }
-    else if let Some(assign) = parse_assignment(reader)?
+    else if let Some(stmt) = parse_for(reader)?
     {
-        Ok(Some(assign))
+        Ok(Some(Statement::For(stmt)))
+    }
+    else if let Some(stmt) = parse_return(reader)?
+    {
+        Ok(Some(Statement::Return(stmt)))
+    }
+    else if let Some(stmt) = parse_continue(reader)?
+    {
+        Ok(Some(Statement::Continue(stmt)))
+    }
+    else if let Some(stmt) = parse_break(reader)?
+    {
+        Ok(Some(Statement::Break(stmt)))
+    }
+    else if let Some(stmt) = parse_type_decl(reader)?
+    {
+        Ok(Some(Statement::TypeDecl(stmt)))
+    }
+    else if let Some(stmt) = parse_enum_decl(reader)?
+    {
+        Ok(Some(Statement::EnumDecl(stmt)))
+    }
+    else if let Some(stmt) = parse_struct_decl(reader)?
+    {
+        Ok(Some(Statement::StructDecl(stmt)))
+    }
+    else if let Some(stmt) = parse_fn_decl(reader)?
+    {
+        Ok(Some(Statement::FnDecl(stmt)))
+    }
+    else if let Some(stmt) = parse_let(reader)?
+    {
+        Ok(Some(Statement::Let(stmt)))
+    }
+    else if let Some(stmt) = parse_assignment(reader)?
+    {
+        Ok(Some(Statement::Assign(stmt)))
+    }
+    else if let Some(stmt) = parse_if(reader)?
+    {
+        Ok(Some(Statement::If(stmt)))
+    }
+    else if let Some(stmt) = parse_match(reader)?
+    {
+        Ok(Some(Statement::Match(stmt)))
+    }
+    else if let Some(stmt) = parse_block_expression(reader)?
+    {
+        Ok(Some(Statement::Block(stmt)))
+    }
+    else if let Some(stmt) = parse_expression_stmt(reader)?
+    {
+        Ok(Some(Statement::Expression(stmt)))
+    }
+    else if let Some(stmt) = parse_use_stmt(reader)?
+    {
+        Ok(Some(Statement::Use(stmt)))
+    }
+    else 
+    {
+        Ok(None)
+    }
+}
+
+pub fn expect_declaration(reader: &mut TokenReader) -> ParserResult<Declaration>
+{
+    expect_ast_item(reader, |r| parse_declaration(r), |t| ParserError::ExpectedDeclaration(t))
+}
+
+pub fn parse_declaration(reader: &mut TokenReader) -> ParserResult<Option<Declaration>>
+{
+    let pub_tok = reader.check(TokenType::Pub);
+
+    if let Some(stmt) = parse_fn_decl(reader)?
+    {
+        return Ok(Some(Declaration::Fn(pub_tok, stmt)));
+    }
+    
+    if let Some(stmt) = parse_struct_decl(reader)?
+    {
+        return Ok(Some(Declaration::Struct(pub_tok, stmt)));
+    }
+
+    if let Some(stmt) = parse_interface_decl(reader)?
+    {
+        return Ok(Some(Declaration::Interface(pub_tok, stmt)));
+    }
+
+    if let Some(stmt) = parse_enum_decl(reader)?
+    {
+        return Ok(Some(Declaration::Enum(pub_tok, stmt)));
+    }
+
+    if let Some(stmt) = parse_type_decl(reader)?
+    {
+        return Ok(Some(Declaration::Type(pub_tok, stmt)));
+    }
+
+    if let Some(stmt) = parse_let(reader)?
+    {
+        return Ok(Some(Declaration::Let(pub_tok, stmt)));
+    }
+
+    if let Some(stmt) = parse_use_stmt(reader)?
+    {
+        return Ok(Some(Declaration::Use(pub_tok, stmt)));
+    }
+
+    if let Some(stmt) = parse_impl_stmt(reader)?
+    {
+        return Ok(Some(Declaration::Impl(stmt)));
+    }
+
+    if pub_tok.is_some()
+    {
+        return Err(ParserError::ExpectedDeclaration(reader.current()))
+    }
+
+    Ok(None)
+}
+
+fn parse_while(reader: &mut TokenReader) -> ParserResult<Option<WhileStmt>>
+{
+    if let Some(while_tok) = reader.check(TokenType::While)
+    {
+        let condition = expect_let_condition(reader)?;
+        let body = expect_block_expression(reader)?;
+        Ok(Some(WhileStmt { while_tok, condition, body }))
     }
     else 
     {
@@ -32,23 +159,125 @@ pub fn parse_statement(reader: &mut TokenReader) -> ParserResult<Option<Statemen
     }
 }
 
-fn parse_impl_member(reader: &mut TokenReader) -> ParserResult<Option<(Option<Token>, Statement)>>
+fn parse_for(reader: &mut TokenReader) -> ParserResult<Option<ForStmt>>
 {
-    if let Some(pub_tok) = reader.check(TokenType::Pub)
-    {
+    let Some(for_tok) = reader.check(TokenType::For) else {
+        return Ok(None)
+    };
 
-    }
-    else if let Some(let_stmt) = parse_let(reader)?
+    let pattern = expect_pattern(reader)?;
+    let in_tok = reader.expect(TokenType::In)?;
+    let expression = expect_expression(reader, parse_expression)?;
+    let body = expect_block_expression(reader)?;
+
+    Ok(Some(ForStmt { for_tok, pattern, in_tok, expression, body }))
+}
+
+fn parse_break(reader: &mut TokenReader) -> ParserResult<Option<BreakStmt>>
+{
+    if let Some(break_tok) = reader.check(TokenType::Break)
     {
-        Ok(Some((None, Statement::Let(let_stmt))))
-    }
-    else if let Some(fn_decl) = parse_fn_decl(reader)?
-    {
-        Ok(Some((None, Statement::FnDecl(fn_decl))))
+        let semi_colon = reader.expect(TokenType::SemiColon)?;
+        Ok(Some(BreakStmt { break_tok, semi_colon }))
     }
     else 
     {
         Ok(None)    
+    }
+}
+
+fn parse_continue(reader: &mut TokenReader) -> ParserResult<Option<ContinueStmt>>
+{
+    if let Some(continue_tok) = reader.check(TokenType::Continue)
+    {
+        let semi_colon = reader.expect(TokenType::SemiColon)?;
+        Ok(Some(ContinueStmt { continue_tok, semi_colon }))
+    }
+    else 
+    {
+        Ok(None)    
+    }
+}
+
+fn parse_return(reader: &mut TokenReader) -> ParserResult<Option<ReturnStmt>>
+{
+    if let Some(return_tok) = reader.check(TokenType::Return)
+    {
+        let expression = parse_expression(reader)?;
+        let semi_colon = reader.expect(TokenType::SemiColon)?;
+        Ok(Some(ReturnStmt { return_tok, expression, semi_colon }))
+    }
+    else 
+    {
+        Ok(None)    
+    }
+}
+
+fn parse_impl_stmt(reader: &mut TokenReader) -> ParserResult<Option<ImplStmt>>
+{
+    let Some(impl_tok) = reader.check(TokenType::Impl) else {
+        return Ok(None)
+    };
+
+    let generic_params = parse_generic_params(reader)?;
+    let type_name = expect_type_name(reader)?;
+    let for_clause = if let Some(for_tok) = reader.check(TokenType::For) {
+        let type_name = expect_type_name(reader)?;
+        Some((for_tok, type_name))
+    } else { None };
+
+    let where_clause = parse_where_clause(reader)?;
+
+    let open_brace = reader.expect(TokenType::OpenBrace)?;
+
+    let mut members = vec![];
+    while let Some(member) = parse_impl_member(reader)?
+    {
+        members.push(member);
+    }
+
+    let close_brace = reader.expect(TokenType::CloseBrace)?;
+
+    Ok(Some(ImplStmt { 
+        impl_tok, 
+        generic_params, 
+        type_name, 
+        for_clause, 
+        where_clause, 
+        open_brace, 
+        members, 
+        close_brace
+    }))
+}
+
+fn parse_impl_member(reader: &mut TokenReader) -> ParserResult<Option<(Option<Token>, Statement)>>
+{
+    let pub_tok = reader.check(TokenType::Pub);
+
+    let member = if let Some(let_stmt) = parse_let(reader)?
+    {
+        Some(Statement::Let(let_stmt))
+    }
+    else if let Some(fn_decl) = parse_fn_decl(reader)?
+    {
+        Some(Statement::FnDecl(fn_decl))
+    }
+    else if let Some(type_decl) = parse_type_decl(reader)?
+    {
+        Some(Statement::TypeDecl(type_decl))
+    }
+    else 
+    {
+        None  
+    };
+
+    if pub_tok.is_some() && member.is_none()
+    {
+        Err(ParserError::ExpectedTokens(vec![TokenType::Let, TokenType::Fn, TokenType::Type], reader.current()))
+    }
+    else 
+    {
+        Ok(Some((pub_tok, member.unwrap())))    
     }
 }
 
@@ -408,15 +637,15 @@ fn parse_let(reader: &mut TokenReader) -> ParserResult<Option<LetStmt>>
     }
 }
 
-fn parse_expression_stmt(reader: &mut TokenReader) -> ParserResult<Option<Statement>>
+fn parse_expression_stmt(reader: &mut TokenReader) -> ParserResult<Option<ExpressionStmt>>
 {
     if let Some(expression) = is_expression_and(reader, |r| r.current_is(&[TokenType::SemiColon]))
     {
         let semi_colon = reader.expect(TokenType::SemiColon)?;
-        Ok(Some(Statement::Expression(ExpressionStmt {
+        Ok(Some(ExpressionStmt {
             expression,
             semi_colon
-        })))
+        }))
     }
     else 
     {
@@ -424,7 +653,7 @@ fn parse_expression_stmt(reader: &mut TokenReader) -> ParserResult<Option<Statem
     }
 }
 
-fn parse_use_stmt(reader: &mut TokenReader) -> ParserResult<Option<Statement>>
+fn parse_use_stmt(reader: &mut TokenReader) -> ParserResult<Option<UseStmt>>
 {
     if let Some(use_tok) = reader.check(TokenType::Use)
     {
@@ -444,12 +673,12 @@ fn parse_use_stmt(reader: &mut TokenReader) -> ParserResult<Option<Statement>>
         let star = if has_dot { Some(reader.expect(TokenType::Multiply)?) } else { None };
         let semi_colon = reader.expect(TokenType::SemiColon)?;
 
-        Ok(Some(Statement::Use(UseStmt {
+        Ok(Some(UseStmt {
             use_tok,
             ids,
             star,
             semi_colon
-        })))
+        }))
     }
     else
     {
@@ -458,7 +687,7 @@ fn parse_use_stmt(reader: &mut TokenReader) -> ParserResult<Option<Statement>>
 }
 
 
-fn parse_assignment(reader: &mut TokenReader) -> ParserResult<Option<Statement>>
+fn parse_assignment(reader: &mut TokenReader) -> ParserResult<Option<AssignStmt>>
 {
     if reader.is_sequence(&[TokenType::Identifier, TokenType::Equal]) ||
        reader.is_sequence(&[TokenType::Identifier, TokenType::PlusEqual]) ||
@@ -474,12 +703,12 @@ fn parse_assignment(reader: &mut TokenReader) -> ParserResult<Option<Statement>>
         let expression = expect_expression(reader, parse_expression)?;
         let semi_colon = reader.expect(TokenType::SemiColon)?;
 
-        Ok(Some(Statement::Assign(AssignStmt {
+        Ok(Some(AssignStmt {
             identifier,
             equal,
             expression,
             semi_colon
-        })))
+        }))
     }
     else 
     {
