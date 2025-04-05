@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read};
+use std::{fs::{create_dir_all, File, OpenOptions}, io::{Read, Write}};
 
 pub mod lexing;
 pub mod parsing;
@@ -20,32 +20,58 @@ fn read_file(path: &str) -> Result<String, String>
     Ok(contents)
 }
 
-fn main() 
+fn write_to_file(filename: &str, content: &str) -> Result<(), String> {
+    // Ensure the parent directory exists
+    if let Some(parent) = std::path::Path::new(filename).parent() {
+        if let Err(e) = create_dir_all(parent) {
+            return Err(format!("Failed to create directory: {}", e));
+        }
+    }
+
+    let Ok(mut file) = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(filename)
+    else {
+        return Err("Failed to create file".into());
+    };
+
+    let Ok(()) = file.write_all(content.as_bytes()) else {
+        return Err("Failed to write to file".into());
+    };
+
+    Ok(())
+}
+
+fn main() -> Result<(), String>
 {
-    let file_name = "tests/test.crs";
+    let file_name = "tests/tick-tack-toe.crs";
+    // let file_name = "tests/test.crs";
     let text = read_file(file_name).unwrap();
     // let text = "utils.Option[Int](1)";
     let tokens = lexing::lex_text(&text);
 
     if tokens.errors.len() > 0 
     {
+        let mut error = "Errors: \n".to_string();
         for e in &tokens.errors
         {
-            println!("Error: {}", e)
+            error += &format!("- Error: {}\n", e);
         }
 
-        return;
+        return Err(error);
     }
     
     let ast = parsing::parse(tokens.tokens);
 
     match ast 
     {
-        Ok(None) => println!("Empty AST"),
-        Ok(Some(ast)) => println!("{:#?}", ast),
+        Ok(None) => write_to_file("./logs/log.txt", "Empty AST"),
+        Ok(Some(ast)) => write_to_file("./logs/log.txt", &format!("{:#?}", ast)),
         Err(err) => 
         {
-            println!("{}", err.format(&tokens.text, file_name));
+            Err(err.format(&tokens.text, file_name))
         }
     }
 }

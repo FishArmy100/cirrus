@@ -133,6 +133,13 @@ impl Token
         let mut line = 1;
         let mut column = 1;
 
+        let line_count = text.iter().filter(|f| **f == '\n').count() + 1;
+
+        if self.pos.begin >= text.len()
+        {
+            return TokenTextLocation { line: line_count, column: 0 }
+        }
+
         for i in 0..=self.pos.begin
         {
             if text[i] == '\n'

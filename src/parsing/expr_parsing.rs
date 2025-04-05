@@ -2,7 +2,7 @@ use either::Either;
 
 use crate::{ast::{AccessExpr, CallExpr, Expression, IndexExpr, UnaryExpr}, lexing::token::TokenType};
 
-use super::{stmt_parsing::parse_statement, *};
+use super::{pattern_parsing::parse_pattern, stmt_parsing::parse_statement, *};
 
 pub fn is_expression_and<F>(reader: &mut TokenReader, f: F) -> Option<Expression>
     where F : Fn(&TokenReader) -> bool
@@ -162,7 +162,7 @@ pub fn parse_if(reader: &mut TokenReader) -> ParserResult<Option<IfExpr>>
 
 fn parse_logical_or(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
 {
-    parse_binary_expr(reader, &[TokenType::PipePipe], parse_logical_and)
+    parse_binary_expr(reader, &[TokenType::AndAnd], parse_logical_and)
 }
 
 fn parse_logical_and(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
@@ -388,7 +388,8 @@ fn parse_construction_expression(reader: &mut TokenReader) -> ParserResult<Optio
 {
     if let Some(offset) = is_type(reader)
     {
-        if reader.peek_is(offset, TokenType::OpenBrace)
+        if reader.peek_sequence_is(offset, &[TokenType::OpenBrace, TokenType::Identifier, TokenType::Colon]) || 
+           reader.peek_sequence_is(offset, &[TokenType::OpenBrace, TokenType::CloseBrace])
         {
             let type_name = parse_type_name(reader)?.unwrap();
             let open_brace = reader.expect(TokenType::OpenBrace)?;

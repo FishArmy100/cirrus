@@ -1,4 +1,7 @@
-fn check_row() -> bool
-{
-    1 == 2 && true
-}
+
+let i = Self {};
+
+// fn check_row() -> bool
+// {
+//     1 == 2 && true
+// }

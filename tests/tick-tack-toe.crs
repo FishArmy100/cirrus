@@ -110,7 +110,7 @@ impl Board
     }
 }
 
-fn get_input(board: Board, player: Player)
+fn get_input(board: Board, player: Player) -> Void
 {
     let state = match player {
         Player.X => TileState.X,
@@ -130,14 +130,14 @@ fn get_input(board: Board, player: Player)
             "7" => board.set(0, 2, state),
             "8" => board.set(1, 2, state),
             "9" => board.set(2, 2, state),
-            _ => continue;
+            _ => continue,
         }
 
         break;
     }
 }
 
-fn main()
+fn main() -> Void
 {
     let board = Board.new();
     let player = Player.X;

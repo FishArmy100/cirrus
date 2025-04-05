@@ -81,7 +81,7 @@ pub fn parse_type_name(reader: &mut TokenReader) -> ParserResult<Option<TypeName
         Some(TokenType::Fn) =>
         {
             Ok(Some(parse_fn_type(reader)?))
-        }
+        },
         _ => return Ok(None),
     }? else { return Ok(None) };
 
