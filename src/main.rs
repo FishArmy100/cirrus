@@ -1,5 +1,7 @@
 use std::{fs::{create_dir_all, File, OpenOptions}, io::{Read, Write}};
 
+use itertools::Itertools;
+
 pub mod lexing;
 pub mod parsing;
 pub mod ast;
@@ -44,10 +46,10 @@ fn write_to_file(filename: &str, content: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn main() -> Result<(), String>
+fn main()
 {
-    let file_name = "tests/tick-tack-toe.crs";
-    // let file_name = "tests/test.crs";
+    // let file_name = "tests/tick-tack-toe.crs";
+    let file_name = "tests/test.crs";
     let text = read_file(file_name).unwrap();
     // let text = "utils.Option[Int](1)";
     let tokens = lexing::lex_text(&text);
@@ -60,18 +62,30 @@ fn main() -> Result<(), String>
             error += &format!("- Error: {}\n", e);
         }
 
-        return Err(error);
+        println!("{}", error);
+        return;
     }
     
     let ast = parsing::parse(tokens.tokens);
 
     match ast 
     {
-        Ok(None) => write_to_file("./logs/log.txt", "Empty AST"),
-        Ok(Some(ast)) => write_to_file("./logs/log.txt", &format!("{:#?}", ast)),
-        Err(err) => 
+        Ok(None) => {
+            write_to_file("./logs/log.txt", "Empty AST").unwrap();
+            println!("Compilation succeeded");
+        },
+        Ok(Some(ast)) => {
+            write_to_file("./logs/log.txt", &format!("{:#?}", ast)).unwrap();
+            println!("Compilation succeeded");
+        },
+        Err(errors) => 
         {
-            Err(err.format(&tokens.text, file_name))
+            let message = "Errors:\n".to_string() + &errors.iter()
+                .map(|e| e.format(&tokens.text, file_name))
+                .map(|e| format!(" - {}", e))
+                .join("\n");
+            
+            println!("{}", message);
         }
     }
 }

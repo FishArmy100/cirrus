@@ -169,6 +169,14 @@ pub struct ArrayLiteral
 }
 
 #[derive(Debug, Clone)]
+pub struct CastExpr
+{
+    pub expression: Box<Expression>,
+    pub as_tok: Token,
+    pub type_name: TypeName,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression
 {
     Lambda(LambdaExpr),
@@ -188,4 +196,5 @@ pub enum Expression
     Binary(BinaryExpr),
     IfExpr(IfExpr),
     MatchExpr(MatchExpr),
+    Cast(CastExpr)
 }

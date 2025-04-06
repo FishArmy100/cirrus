@@ -185,4 +185,12 @@ impl<'a> TokenReader<'a>
             None => Err(ParserError::ExpectedTokens(tokens.to_vec(), self.current()))
         }
     }
+
+    pub fn synchronize(&mut self, tokens: &[TokenType])
+    {
+        while !self.current_is(tokens) && !self.at_end()
+        {
+            self.advance();
+        }
+    }
 }

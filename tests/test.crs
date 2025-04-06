@@ -1,7 +1,4 @@
 
-let i = Self {};
+let i = 1 + 0 as String
 
-// fn check_row() -> bool
-// {
-//     1 == 2 && true
-// }
+let a = ;

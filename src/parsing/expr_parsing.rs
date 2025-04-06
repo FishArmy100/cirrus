@@ -208,7 +208,7 @@ fn parse_unary(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
 
 fn parse_call(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
 {
-    let Some(callee) = parse_primary(reader)? else {
+    let Some(callee) = parse_cast(reader)? else {
         return Ok(None)
     };
 
@@ -271,6 +271,7 @@ fn parse_call_args(reader: &mut TokenReader, callee: Expression) -> ParserResult
         Ok(Some(callee))    
     }
 }
+
 
 fn parse_primary(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
 {
@@ -421,6 +422,26 @@ fn parse_construction_expression(reader: &mut TokenReader) -> ParserResult<Optio
     }
 
     Ok(None)
+}
+
+fn parse_cast(reader: &mut TokenReader) -> ParserResult<Option<Expression>>
+{
+    if let Some(expression) = parse_primary(reader)?
+    {
+        if let Some(as_tok) = reader.check(TokenType::As)
+        {
+            let type_name = expect_type_name(reader)?;
+            Ok(Some(Expression::Cast(CastExpr { expression: Box::new(expression), as_tok, type_name })))
+        }
+        else
+        {
+            Ok(Some(expression))
+        }
+    }
+    else 
+    {
+        Ok(None)
+    }
 }
 
 fn parse_array_literal(reader: &mut TokenReader) -> ParserResult<Option<Expression>>

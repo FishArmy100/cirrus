@@ -56,16 +56,37 @@ impl ParserError
 
 pub type ParserResult<T> = Result<T, ParserError>;
 
-pub fn parse(tokens: Vec<Token>) -> ParserResult<Option<Program>>
+pub fn parse(tokens: Vec<Token>) -> Result<Option<Program>, Vec<ParserError>>
 {
     let Some(mut reader) = TokenReader::new(&tokens, None) else { return Ok(None) };
     let mut declarations = vec![];
-    while let Some(declaration) = parse_declaration(&mut reader)?
+    let mut errors = vec![];
+
+    loop 
     {
-        declarations.push(declaration);
+        match parse_declaration(&mut reader)
+        {
+            Ok(Some(decl)) => declarations.push(decl),
+            Ok(None) => break,
+            Err(err) => {
+                errors.push(err);
+                reader.synchronize(&[TokenType::EOF, TokenType::Let, TokenType::Const, TokenType::Fn, TokenType::Struct, TokenType::Impl, TokenType::Enum, TokenType::Interface]);
+            },
+        }
     }
 
-    let eof = reader.expect(TokenType::EOF)?;
+    let eof = match reader.expect(TokenType::EOF) {
+        Ok(ok) => ok,
+        Err(err) => { 
+            errors.push(err);
+            return Err(errors);
+        }
+    };
+
+    if errors.len() > 0
+    {
+        return Err(errors)
+    }
 
     Ok(Some(Program { declarations, eof }))
 }
