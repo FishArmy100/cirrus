@@ -6,6 +6,7 @@ pub mod lexing;
 pub mod parsing;
 pub mod ast;
 pub mod utils;
+pub mod typed_ast;
 
 fn read_file(path: &str) -> Result<String, String> 
 {
