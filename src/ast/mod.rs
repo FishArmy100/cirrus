@@ -4,7 +4,7 @@ pub use expr::*;
 use itertools::Itertools;
 pub use stmt::*;
 
-use crate::lexing::token::Token;
+use crate::{lexing::token::Token, utils::TextPos};
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]
@@ -93,6 +93,31 @@ impl TypeName
 
                 text
             }
+        }
+    }
+
+    pub fn get_pos(&self) -> TextPos
+    {
+        match self 
+        {
+            TypeName::Identifier { name, args } => 
+            {
+                match args
+                {
+                    Some(args) => name.pos + args.close_bracket.pos + args.open_bracket.pos,
+                    None => name.pos,
+                }
+            },
+            TypeName::Array { open_bracket, close_bracket: _, type_name } => open_bracket.pos + type_name.get_pos(),
+            TypeName::Function { fn_tok, open_paren: _, parameter_types: _, close_paren: _, arrow: _, return_type } => fn_tok.pos + return_type.get_pos(),
+            TypeName::Access { inner, dot: _, name, args } => 
+            {
+                match args
+                {
+                    Some(args) => inner.get_pos() + args.close_bracket.pos,
+                    None => inner.get_pos() + name.pos,
+                }
+            },
         }
     }
 }

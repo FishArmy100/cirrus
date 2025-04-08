@@ -1,6 +1,8 @@
 use char_reader::CharReader;
 use keywords::KEYWORDS;
-use token::{Token, TokenPos, TokenType, TokenValue};
+use token::{Token, TokenType, TokenValue};
+
+use crate::{compiler::{CompilerError, CompilerResult}, utils::TextPos};
 
 pub mod keywords;
 pub mod token;
@@ -17,6 +19,24 @@ pub enum LexerError
     UnterminatedString
     {
         index: usize,
+    }
+}
+
+impl CompilerError for LexerError
+{
+    fn pos(&self) -> Option<TextPos> 
+    {
+        let pos = match self 
+        {
+            Self::UnknownToken { token: _, index } => TextPos::uniform(*index),
+            Self::UnterminatedString { index } => TextPos::uniform(*index),
+        };
+
+        Some(pos)
+    }
+
+    fn message(&self) -> String {
+        todo!()
     }
 }
 
@@ -38,6 +58,31 @@ pub struct LexerResult
     pub text: Vec<char>,
     pub tokens: Vec<Token>,
     pub errors: Vec<LexerError>,
+}
+
+impl CompilerResult<LexerResult> for LexerResult
+{
+    fn is_ok(&self) -> bool 
+    {
+        self.errors.len() == 0
+    }
+
+    fn get_result(&self) -> Option<&LexerResult> 
+    {
+        if self.is_ok()
+        {
+            Some(self)
+        }
+        else 
+        {
+            None     
+        }
+    }
+    
+    fn get_errors(&self) -> Vec<impl CompilerError>
+    {
+        self.errors.clone()
+    }
 }
 
 pub fn lex_text(text: &str) -> LexerResult
@@ -298,10 +343,12 @@ pub fn check_identifier(reader: &mut CharReader) -> Option<Token>
         let value = match token_type
         {
             TokenType::Identifier => Some(TokenValue::String(text)),
+            TokenType::True => Some(TokenValue::Bool(true)),
+            TokenType::False => Some(TokenValue::Bool(false)),
             _ => None,
         };
 
-        Some(Token { pos: TokenPos { begin, end }, token_type, value })
+        Some(Token { pos: TextPos { begin, end }, token_type, value })
     }
     else 
     {
@@ -331,7 +378,7 @@ pub fn check_string_literal(reader: &mut CharReader) -> Option<Result<Token, Lex
         let end = reader.index();
         text.push(reader.advance().unwrap());
         Some(Ok(Token { 
-            pos: TokenPos { begin, end }, 
+            pos: TextPos { begin, end }, 
             token_type: TokenType::StringLiteral, 
             value: Some(TokenValue::String(text)) 
         }))
@@ -364,7 +411,7 @@ pub fn check_number_literal(reader: &mut CharReader) -> Option<Token>
 
         Some(Token 
         {
-            pos: TokenPos { begin, end: reader.index() - 1 },
+            pos: TextPos { begin, end: reader.index() - 1 },
             token_type: TokenType::FloatLiteral,
             value: Some(TokenValue::Float(number.parse().unwrap()))
         })   
@@ -373,7 +420,7 @@ pub fn check_number_literal(reader: &mut CharReader) -> Option<Token>
     {
         Some(Token 
         {
-            pos: TokenPos { begin, end: reader.index() - 1 },
+            pos: TextPos { begin, end: reader.index() - 1 },
             token_type: TokenType::IntegerLiteral,
             value: Some(TokenValue::Int(number.parse().unwrap()))
         })
@@ -393,7 +440,7 @@ pub fn make_token(reader: &mut CharReader, length: usize, token_type: TokenType)
 
     Token 
     { 
-        pos: TokenPos {
+        pos: TextPos {
             begin,
             end
         }, 

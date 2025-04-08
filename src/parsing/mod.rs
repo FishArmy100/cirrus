@@ -11,10 +11,12 @@ pub use expr_parsing::*;
 
 use token_reader::TokenReader;
 
-use crate::lexing::token::{Token, TokenTextLocation, TokenType};
+use crate::compiler::{CompilerError, CompilerResult};
+use crate::lexing::token::{Token, TokenType};
 use crate::ast::*;
+use crate::utils::{TextLocation, TextPos};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ParserError
 {
     ExpectedExpression(Option<Token>),
@@ -28,33 +30,78 @@ pub enum ParserError
     ExpectedDeclaration(Option<Token>),
 }
 
-impl ParserError
+impl CompilerError for ParserError
 {
-    pub fn format(&self, text: &[char], file: &str) -> String 
+    fn pos(&self) -> Option<TextPos> 
     {
-        let line_count = text.iter().filter(|f| **f == '\n').count() + 1;
-        let end_loc = TokenTextLocation { line: line_count, column: 1 };
-        
-        let formatter = |token: &Option<Token>, error: &str| { 
-            format!("[{}:{}]: {}", file, token.as_ref().map_or(end_loc, |t| t.get_loc(text)), error)
-        };
+        match self 
+        {
+            ParserError::ExpectedExpression(token) => token.as_ref().map(|t| t.pos),
+            ParserError::ExpectedType(token) => token.as_ref().map(|t| t.pos),
+            ParserError::ExpectedToken(_, token) => token.as_ref().map(|t| t.pos),
+            ParserError::ExpectedTokens(_, token) => token.as_ref().map(|t| t.pos),
+            ParserError::ExpectedALambdaParameter(token) => token.as_ref().map(|t| t.pos),
+            ParserError::ExpectedStatement(token) => token.as_ref().map(|t| t.pos),
+            ParserError::ExpectedPattern(token) => token.as_ref().map(|t| t.pos),
+            ParserError::ExpectedBlock(token) => token.as_ref().map(|t| t.pos),
+            ParserError::ExpectedDeclaration(token) => token.as_ref().map(|t| t.pos),
+        }
+    }
 
+    fn message(&self) -> String 
+    {
         match self
         {
-            ParserError::ExpectedExpression(token) => formatter(token, "Expected an expression"),
-            ParserError::ExpectedType(token) => formatter(token, "Expected a type"),
-            ParserError::ExpectedToken(token_type, token) => formatter(token, &format!("Expected token {:?} ", token_type)),
-            ParserError::ExpectedTokens(token_types, token) => formatter(token, &format!("Expected one of token {:?} ", token_types.iter().map(|t| format!("{:?}", t)).collect::<Vec<_>>())),
-            ParserError::ExpectedALambdaParameter(token) => formatter(token, "Expected a lambda parameter"),
-            ParserError::ExpectedStatement(token) => formatter(token, "Expected a statement"),
-            ParserError::ExpectedPattern(token) => formatter(token, "Expected a pattern"),
-            ParserError::ExpectedBlock(token) => formatter(token, "Expected a block expression"),
-            ParserError::ExpectedDeclaration(token) => formatter(token, "Expected a declaration"),
+            ParserError::ExpectedExpression(token) => "Expected an expression".into(),
+            ParserError::ExpectedType(token) => "Expected a type".into(),
+            ParserError::ExpectedToken(token_type, token) => format!("Expected token {:?} ", token_type),
+            ParserError::ExpectedTokens(token_types, token) => format!("Expected one of token {:?} ", token_types.iter().map(|t| format!("{:?}", t)).collect::<Vec<_>>()),
+            ParserError::ExpectedALambdaParameter(token) => "Expected a lambda parameter".into(),
+            ParserError::ExpectedStatement(token) => "Expected a statement".into(),
+            ParserError::ExpectedPattern(token) => "Expected a pattern".into(),
+            ParserError::ExpectedBlock(token) => "Expected a block expression".into(),
+            ParserError::ExpectedDeclaration(token) => "Expected a declaration".into(),
         }
     }
 }
 
 pub type ParserResult<T> = Result<T, ParserError>;
+
+impl<T> CompilerResult<T> for ParserResult<T>
+{
+    fn is_ok(&self) -> bool 
+    {
+        self.is_ok()
+    }
+
+    fn get_result(&self) -> Option<&T> 
+    {
+        self.as_ref().ok()
+    }
+
+    fn get_errors(&self) -> Vec<impl CompilerError>
+    {
+        self.as_ref().err().map_or(vec![], |e| vec![e.clone()])
+    }
+}
+
+impl CompilerResult<Option<Program>> for Result<Option<Program>, Vec<ParserError>>
+{
+    fn is_ok(&self) -> bool 
+    {
+        self.is_ok()
+    }
+
+    fn get_result(&self) -> Option<&Option<Program>> 
+    {
+        self.as_ref().ok()
+    }
+
+    fn get_errors(&self) -> Vec<impl CompilerError> 
+    {
+        self.as_ref().err().map_or(vec![], |e| e.clone())
+    }
+}
 
 pub fn parse(tokens: Vec<Token>) -> Result<Option<Program>, Vec<ParserError>>
 {

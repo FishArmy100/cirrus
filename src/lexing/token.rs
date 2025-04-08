@@ -1,3 +1,5 @@
+use crate::utils::{TextLocation, TextPos};
+
 
 pub const ASSIGNMENT_TOKENS: &'static [TokenType] = &[
     TokenType::Equal,
@@ -101,8 +103,9 @@ pub enum TokenType
 pub enum TokenValue
 {
     String(String),
-    Int(u64),
+    Int(i64),
     Float(f64),
+    Bool(bool),
 }
 
 impl std::fmt::Display for TokenValue
@@ -114,6 +117,7 @@ impl std::fmt::Display for TokenValue
             TokenValue::String(s) => write!(f, "{}", s),
             TokenValue::Int(i) => write!(f, "{}", i),
             TokenValue::Float(n) => write!(f, "{}", n),
+            TokenValue::Bool(b) => write!(f, "{}", b),
         }
     }
 }
@@ -121,39 +125,16 @@ impl std::fmt::Display for TokenValue
 #[derive(Debug, Clone)]
 pub struct Token 
 {
-    pub pos: TokenPos,
+    pub pos: TextPos,
     pub token_type: TokenType,
     pub value: Option<TokenValue>
 }
 
 impl Token 
 {
-    pub fn get_loc(&self, text: &[char]) -> TokenTextLocation
+    pub fn get_loc(&self, text: &[char]) -> TextLocation
     {
-        let mut line = 1;
-        let mut column = 1;
-
-        let line_count = text.iter().filter(|f| **f == '\n').count() + 1;
-
-        if self.pos.begin >= text.len()
-        {
-            return TokenTextLocation { line: line_count, column: 0 }
-        }
-
-        for i in 0..=self.pos.begin
-        {
-            if text[i] == '\n'
-            {
-                line += 1;
-                column = 0;
-            }
-            else 
-            {
-                column += 1;
-            }
-        }
-
-        TokenTextLocation { line, column }
+        self.pos.get_loc(text)
     }
 }
 
@@ -166,41 +147,8 @@ impl std::fmt::Display for Token
             Some(TokenValue::Float(v)) => write!(f, "{:?}({})", self.token_type, v),
             Some(TokenValue::Int(v)) => write!(f, "{:?}({})", self.token_type, v),
             Some(TokenValue::String(v)) => write!(f, "{:?}({})", self.token_type, v),
+            Some(TokenValue::Bool(v)) => write!(f, "{:?}({})", self.token_type, v),
             None => write!(f, "{:?}", self.token_type)
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct TokenTextLocation
-{
-    pub line: usize,
-    pub column: usize,
-}
-
-impl std::fmt::Display for TokenTextLocation
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result 
-    {
-        write!(f, "{}:{}", self.line, self.column)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct TokenPos
-{
-    pub begin: usize,
-    pub end: usize,
-}
-
-impl From<usize> for TokenPos
-{
-    fn from(value: usize) -> Self 
-    {
-        Self 
-        {
-            begin: value,
-            end: value
         }
     }
 }

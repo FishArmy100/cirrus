@@ -1,12 +1,16 @@
 use std::{fs::{create_dir_all, File, OpenOptions}, io::{Read, Write}};
 
+use compiler::CompilerResult;
 use itertools::Itertools;
+use parsing::token_reader::TokenReader;
+use validation::{builtins, typed_expr::TypedExpr};
 
 pub mod lexing;
 pub mod parsing;
 pub mod ast;
 pub mod utils;
-pub mod typed_ast;
+pub mod validation;
+pub mod compiler;
 
 fn read_file(path: &str) -> Result<String, String> 
 {
@@ -50,43 +54,38 @@ fn write_to_file(filename: &str, content: &str) -> Result<(), String> {
 fn main()
 {
     // let file_name = "tests/tick-tack-toe.crs";
-    let file_name = "tests/test.crs";
-    let text = read_file(file_name).unwrap();
+    // let file_name = "tests/test.crs";
+    // let text = read_file(file_name).unwrap();
     // let text = "utils.Option[Int](1)";
-    let tokens = lexing::lex_text(&text);
+    let text = "1 + 1 == false";
+    compile(text, None);
+}
 
-    if tokens.errors.len() > 0 
+fn compile(text: &str, file: Option<&str>)
+{
+    let lexed = lexing::lex_text(&text);
+    if lexed.is_err()
     {
-        let mut error = "Errors: \n".to_string();
-        for e in &tokens.errors
-        {
-            error += &format!("- Error: {}\n", e);
-        }
-
-        println!("{}", error);
+        lexed.print_errors(&lexed.text, file);
         return;
     }
-    
-    let ast = parsing::parse(tokens.tokens);
 
-    match ast 
+    let mut reader = TokenReader::new(&lexed.tokens, None).unwrap();
+    let parsed = parsing::parse_expression(&mut reader);
+    if parsed.is_err()
     {
-        Ok(None) => {
-            write_to_file("./logs/log.txt", "Empty AST").unwrap();
-            println!("Compilation succeeded");
-        },
-        Ok(Some(ast)) => {
-            write_to_file("./logs/log.txt", &format!("{:#?}", ast)).unwrap();
-            println!("Compilation succeeded");
-        },
-        Err(errors) => 
-        {
-            let message = "Errors:\n".to_string() + &errors.iter()
-                .map(|e| e.format(&tokens.text, file_name))
-                .map(|e| format!(" - {}", e))
-                .join("\n");
-            
-            println!("{}", message);
-        }
+        parsed.print_errors(&lexed.text, file);
+        return;
     }
+
+    let context = &builtins::build_builtins();
+    let checked = TypedExpr::from_ast(context, &parsed.ok().unwrap().unwrap());
+    if checked.is_err()
+    {
+        checked.print_errors(&lexed.text, file);
+        return;
+    }
+
+    println!("Compiled successfully");
+    println!("{:#?}", checked);
 }
