@@ -93,7 +93,7 @@ impl TextPos
 
         if self.begin >= text.len()
         {
-            return TextLocation { line, column };
+            return TextLocation { line: line_count, column };
         }
 
         for i in 0..=self.begin

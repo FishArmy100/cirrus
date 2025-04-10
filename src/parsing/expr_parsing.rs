@@ -2,7 +2,7 @@ use either::Either;
 
 use crate::{ast::{AccessExpr, CallExpr, Expression, IndexExpr, UnaryExpr}, lexing::token::TokenType};
 
-use super::{pattern_parsing::parse_pattern, stmt_parsing::parse_statement, *};
+use super::{stmt_parsing::parse_statement, *};
 
 pub fn is_expression_and<F>(reader: &mut TokenReader, f: F) -> Option<Expression>
     where F : Fn(&TokenReader) -> bool

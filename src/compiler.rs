@@ -1,4 +1,4 @@
-use crate::utils::{TextLocation, TextPos};
+use crate::utils::TextPos;
 
 
 pub trait CompilerError
@@ -27,8 +27,8 @@ pub trait CompilerResult<T>
                 let loc = e.pos().unwrap_or(TextPos::uniform(text.len())).get_loc(text);
                 match &file 
                 {
-                    Some(file) => format!("[{}:{}]: `{}`", file.to_string(), loc, e.message()),
-                    None => format!("[{}]: `{}`", loc, e.message())
+                    Some(file) => format!("[{}:{}]: {}", file.to_string(), loc, e.message()),
+                    None => format!("[{}]: \"{}\"", loc, e.message())
                 }
             })
             .collect()

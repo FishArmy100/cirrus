@@ -14,7 +14,7 @@ use token_reader::TokenReader;
 use crate::compiler::{CompilerError, CompilerResult};
 use crate::lexing::token::{Token, TokenType};
 use crate::ast::*;
-use crate::utils::{TextLocation, TextPos};
+use crate::utils::TextPos;
 
 #[derive(Debug, Clone)]
 pub enum ParserError
@@ -52,15 +52,15 @@ impl CompilerError for ParserError
     {
         match self
         {
-            ParserError::ExpectedExpression(token) => "Expected an expression".into(),
-            ParserError::ExpectedType(token) => "Expected a type".into(),
-            ParserError::ExpectedToken(token_type, token) => format!("Expected token {:?} ", token_type),
-            ParserError::ExpectedTokens(token_types, token) => format!("Expected one of token {:?} ", token_types.iter().map(|t| format!("{:?}", t)).collect::<Vec<_>>()),
-            ParserError::ExpectedALambdaParameter(token) => "Expected a lambda parameter".into(),
-            ParserError::ExpectedStatement(token) => "Expected a statement".into(),
-            ParserError::ExpectedPattern(token) => "Expected a pattern".into(),
-            ParserError::ExpectedBlock(token) => "Expected a block expression".into(),
-            ParserError::ExpectedDeclaration(token) => "Expected a declaration".into(),
+            ParserError::ExpectedExpression(_) => "Expected an expression".into(),
+            ParserError::ExpectedType(_) => "Expected a type".into(),
+            ParserError::ExpectedToken(token_type, _) => format!("Expected token {:?} ", token_type),
+            ParserError::ExpectedTokens(token_types, _) => format!("Expected one of token {:?} ", token_types.iter().map(|t| format!("{:?}", t)).collect::<Vec<_>>()),
+            ParserError::ExpectedALambdaParameter(_) => "Expected a lambda parameter".into(),
+            ParserError::ExpectedStatement(_) => "Expected a statement".into(),
+            ParserError::ExpectedPattern(_) => "Expected a pattern".into(),
+            ParserError::ExpectedBlock(_) => "Expected a block expression".into(),
+            ParserError::ExpectedDeclaration(_) => "Expected a declaration".into(),
         }
     }
 }

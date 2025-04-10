@@ -2,6 +2,7 @@ pub mod builtins;
 pub mod operators;
 pub mod type_key;
 pub mod typed_expr;
+pub mod pattern;
 use std::collections::HashMap;
 
 use operators::{BinaryOpType, GlobalOperators};
@@ -72,6 +73,8 @@ impl<T> CompilerResult<T> for TypeResult<T>
         }
     }
 }
+
+
 
 
 pub struct TypeContext

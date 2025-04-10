@@ -1,6 +1,13 @@
 use itertools::Itertools;
 use uuid::Uuid;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InterfaceType
+{
+    pub name: String,
+    pub id: Uuid,
+}
+
 #[derive(Debug, Clone, Hash)]
 pub enum TypeKey
 {
