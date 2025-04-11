@@ -135,8 +135,6 @@ impl From<usize> for TextPos
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TextLocation
 {
@@ -149,5 +147,26 @@ impl std::fmt::Display for TextLocation
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result 
     {
         write!(f, "{}:{}", self.line, self.column)
+    }
+}
+
+pub fn partition_errors<T, E>(results: impl IntoIterator<Item = Result<T, E>>) -> Result<Vec<T>, Vec<E>>
+{
+    let mut oks = Vec::new();
+    let mut errs = Vec::new();
+
+    for result in results {
+        match result {
+            Ok(val) => oks.push(val),
+            Err(err) => errs.push(err),
+        }
+    }
+
+    if errs.is_empty() 
+    {
+        Ok(oks)
+    } 
+    else {
+        Err(errs)
     }
 }

@@ -3,7 +3,6 @@ use std::{fs::{create_dir_all, File, OpenOptions}, io::{Read, Write}};
 use compiler::CompilerResult;
 use itertools::Itertools;
 use parsing::token_reader::TokenReader;
-use validation::{builtins, typed_expr::TypedExpr};
 
 pub mod lexing;
 pub mod parsing;
@@ -78,14 +77,14 @@ fn compile(text: &str, file: Option<&str>)
         return;
     }
 
-    let context = &builtins::build_builtins();
-    let checked = TypedExpr::from_ast(context, &parsed.ok().unwrap().unwrap());
-    if checked.is_err()
-    {
-        checked.print_errors(&lexed.text, file);
-        return;
-    }
+    // let context = &builtins::build_builtins();
+    // let checked = TypedExpr::from_ast(context, &parsed.ok().unwrap().unwrap());
+    // if checked.is_err()
+    // {
+    //     checked.print_errors(&lexed.text, file);
+    //     return;
+    // }
 
-    println!("Compiled successfully");
-    println!("{:#?}", checked);
+    // println!("Compiled successfully");
+    // println!("{:#?}", checked);
 }

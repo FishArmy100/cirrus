@@ -108,6 +108,18 @@ pub enum TokenValue
     Bool(bool),
 }
 
+impl TokenValue
+{
+    pub fn as_string(&self) -> Option<&String>
+    {
+        match self 
+        {
+            Self::String(s) => Some(s),
+            _ => None,
+        }
+    }
+}
+
 impl std::fmt::Display for TokenValue
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result 
@@ -132,6 +144,11 @@ pub struct Token
 
 impl Token 
 {
+    pub fn value_string(&self) -> Option<&String>
+    {
+        self.value.as_ref().map(|s| s.as_string()).flatten()
+    }
+
     pub fn get_loc(&self, text: &[char]) -> TextLocation
     {
         self.pos.get_loc(text)

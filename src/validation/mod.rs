@@ -1,88 +1,59 @@
-pub mod builtins;
-pub mod operators;
-pub mod type_key;
-pub mod typed_expr;
-pub mod pattern;
-use std::collections::HashMap;
-
-use operators::{BinaryOpType, GlobalOperators};
-use type_key::TypeKey;
 use uuid::Uuid;
 
-use crate::{compiler::{CompilerError, CompilerResult}, lexing::token::Token, utils::TextPos};
+use crate::{ast::{Declaration, Program}, lexing::token::Token, utils::{partition_errors, TextPos}};
 
-#[derive(Debug, Clone)]
 pub enum TypeError
 {
-    ExpressionTypeNotImplementedYet
+    DuplicateTypeDefinition
     {
-        pos: TextPos
-    },
-    NoBinaryOperator
-    {
-        token: Token,
-        op: BinaryOpType,
-        left: TypeKey,
-        right: TypeKey,
+        original: Token,
+        duplicate: Token,
     }
 }
 
-impl CompilerError for TypeError
+pub struct GenericParam 
 {
-    fn pos(&self) -> Option<TextPos> 
-    {
-        match self 
-        {
-            TypeError::ExpressionTypeNotImplementedYet { pos } => Some(*pos),
-            TypeError::NoBinaryOperator { token, op: _, left: _, right: _ } => Some(token.pos),
-        }
-    }
+    pub name: String,
+}
 
-    fn message(&self) -> String 
+pub struct StructDef
+{
+    pub id: Uuid,
+    pub name: String,
+    pub pos: TextPos,
+    pub generic_params: Option<Vec<GenericParam>>
+}
+
+impl StructDef
+{
+    pub fn find_global_defs(program: Program) -> Result<Vec<StructDef>, Vec<TypeError>>
     {
-        match self 
-        {
-            TypeError::ExpressionTypeNotImplementedYet { pos: _ } => "Expression type not implemented".into(),
-            TypeError::NoBinaryOperator { token: _, op, left, right } => {
-                format!("Binary operator `{}` does not exist for types `{}` and `{}`", op, left, right)
+        let results = program.declarations.iter().filter_map(|d| match d {
+            Declaration::Struct(_, s) => 
+            {
+                let struct_id = s.id.value.as_ref().unwrap().as_string().unwrap();
+                let generic_params = s.generic_params.as_ref().map(|p| p.params.iter().map(|p| p.value_string().unwrap().clone()));
+
+                if let Some(t) = s.generic_params.as_ref().map(|p| p.params.iter().find(|p| p.value.as_ref().unwrap().as_string().unwrap() == struct_id)).flatten()
+                {
+                    return Some(Err(TypeError::DuplicateTypeDefinition { original: s.id.clone(), duplicate: t.clone() }))
+                }
+
+                Some(Ok(StructDef
+                {
+                    id: Uuid::new_v4(),
+                    name: struct_id.clone(),
+                    generic_params: s.generic_params.as_ref().map(|p| p.params.iter().map(|p|{ 
+                        let name = p.value_string().unwrap().clone();
+                        GenericParam {
+                            name,
+                        }
+                    }).collect())
+                }))
             },
-        }
+            _ => None,
+        });
+
+        partition_errors(results)
     }
-}
-
-pub type TypeResult<T> = Result<T, TypeError>;
-
-impl<T> CompilerResult<T> for TypeResult<T>
-{
-    fn is_ok(&self) -> bool 
-    {
-        self.is_ok()
-    }
-
-    fn get_result(&self) -> Option<&T> 
-    {
-        self.as_ref().ok()
-    }
-
-    fn get_errors(&self) -> Vec<impl CompilerError> 
-    {
-        match self 
-        {
-            Ok(_) => vec![],
-            Err(e) => vec![e.clone()],
-        }
-    }
-}
-
-
-
-
-pub struct TypeContext
-{
-    pub operators: GlobalOperators,
-    pub types: HashMap<Uuid, TypeKey>,
-
-    pub int_id: Uuid,
-    pub float_id: Uuid,
-    pub bool_id: Uuid,
 }
