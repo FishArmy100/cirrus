@@ -166,7 +166,8 @@ pub fn partition_errors<T, E>(results: impl IntoIterator<Item = Result<T, E>>) -
     {
         Ok(oks)
     } 
-    else {
+    else 
+    {
         Err(errs)
     }
 }

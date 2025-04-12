@@ -1,8 +1,9 @@
 use std::{fs::{create_dir_all, File, OpenOptions}, io::{Read, Write}};
 
+use ast::StructDecl;
 use compiler::CompilerResult;
-use itertools::Itertools;
-use parsing::token_reader::TokenReader;
+use parsing::parse;
+use validation::ProgramTypeDefinitions;
 
 pub mod lexing;
 pub mod parsing;
@@ -53,11 +54,11 @@ fn write_to_file(filename: &str, content: &str) -> Result<(), String> {
 fn main()
 {
     // let file_name = "tests/tick-tack-toe.crs";
-    // let file_name = "tests/test.crs";
-    // let text = read_file(file_name).unwrap();
+    let file_name = "tests/test.crs";
+    let text = read_file(file_name).unwrap();
     // let text = "utils.Option[Int](1)";
-    let text = "1 + 1 == false";
-    compile(text, None);
+    // let text = "1 + 1 == false";
+    compile(&text, None);
 }
 
 fn compile(text: &str, file: Option<&str>)
@@ -69,22 +70,20 @@ fn compile(text: &str, file: Option<&str>)
         return;
     }
 
-    let mut reader = TokenReader::new(&lexed.tokens, None).unwrap();
-    let parsed = parsing::parse_expression(&mut reader);
+    let parsed = parse(&lexed.tokens);
     if parsed.is_err()
     {
         parsed.print_errors(&lexed.text, file);
         return;
     }
+    
+    let result = ProgramTypeDefinitions::new(parsed.get_result().unwrap().as_ref().unwrap());
+    if result.is_err()
+    {
+        result.print_errors(&lexed.text, file);
+        return;
+    }
 
-    // let context = &builtins::build_builtins();
-    // let checked = TypedExpr::from_ast(context, &parsed.ok().unwrap().unwrap());
-    // if checked.is_err()
-    // {
-    //     checked.print_errors(&lexed.text, file);
-    //     return;
-    // }
-
-    // println!("Compiled successfully");
-    // println!("{:#?}", checked);
+    println!("Successfully Compiled!");
+    println!("{:#?}", result.get_result().unwrap());
 }

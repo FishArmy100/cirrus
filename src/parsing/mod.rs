@@ -103,9 +103,9 @@ impl CompilerResult<Option<Program>> for Result<Option<Program>, Vec<ParserError
     }
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<Option<Program>, Vec<ParserError>>
+pub fn parse(tokens: &Vec<Token>) -> Result<Option<Program>, Vec<ParserError>>
 {
-    let Some(mut reader) = TokenReader::new(&tokens, None) else { return Ok(None) };
+    let Some(mut reader) = TokenReader::new(tokens, None) else { return Ok(None) };
     let mut declarations = vec![];
     let mut errors = vec![];
 

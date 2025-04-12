@@ -1,4 +1,16 @@
 
-let i = 1 + 0 as String
+struct Number
+{
+    value: Int,
+}
 
-let a = ;
+struct Error[T]
+{
+    message: String,
+    value: T
+}
+
+interface Number 
+{
+
+}
