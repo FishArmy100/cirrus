@@ -16,6 +16,17 @@ pub enum TypeError
         feature: NotSupportedFeature,
         pos: TextPos,
     },
+    UnknownType
+    {
+        name: Token,
+        pos: TextPos,
+    },
+    GenericCountMismatch
+    {
+        expected: usize,
+        got: usize,
+        pos: TextPos,
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,6 +54,8 @@ impl CompilerError for TypeError
         {
             TypeError::DuplicateTypeDefinition { original: _, duplicate } => Some(duplicate.pos),
             TypeError::NotSupported { feature: _, pos } => Some(*pos),
+            TypeError::UnknownType { name: _, pos } => Some(*pos),
+            TypeError::GenericCountMismatch { expected: _, got: _, pos } => Some(*pos),
         }
     }
 
@@ -52,6 +65,8 @@ impl CompilerError for TypeError
         {
             TypeError::DuplicateTypeDefinition { original: _, duplicate } => format!("Duplicate type {}", duplicate.value_string().unwrap()),
             TypeError::NotSupported { feature, pos: _ } => feature.get_message(),
+            TypeError::UnknownType { name, pos: _ } => format!("Unknown type name {}", name.value_string().unwrap()),
+            TypeError::GenericCountMismatch { expected, got, pos: _ } => format!("Expected generic count {}, found {}", expected, got),
         }
     }
 }

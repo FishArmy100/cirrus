@@ -1,16 +1,8 @@
 
-struct Number
-{
-    value: Int,
-}
+struct Int {}
 
-struct Error[T]
-{
-    message: String,
-    value: T
-}
+interface Add[Rhs, Result] {}
 
-interface Number 
-{
+impl Add[Int, Int] for Int {}
 
-}
+let i = Int {} + Int {};
