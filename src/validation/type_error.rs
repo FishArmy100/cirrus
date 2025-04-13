@@ -1,9 +1,6 @@
-use crate::{compiler::{CompilerError, CompilerResult}, lexing::token::Token, utils::TextPos};
+use crate::{ast::TypeName, compiler::{CompilerError, CompilerResult}, lexing::token::Token, utils::TextPos};
 
-#
-
-
-[derive(Debug, Clone)]
+#[derive(Debug, Clone)]
 pub enum TypeError
 {
     DuplicateTypeDefinition
@@ -26,13 +23,27 @@ pub enum TypeError
         expected: usize,
         got: usize,
         pos: TextPos,
+    },
+    TypeNotAnInterface
+    {
+        name: TypeName,
+    },
+    TypeNotAnStruct
+    {
+        name: TypeName,
+    },
+    OverlappingInterfaceImplementation
+    {
+        pos: TextPos,
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NotSupportedFeature
 {
-    NonPrimaryImpls
+    NonPrimaryImpls,
+    GenericImpls,
+    NonForClauseImpls
 }
 
 impl NotSupportedFeature
@@ -42,6 +53,8 @@ impl NotSupportedFeature
         match self 
         {
             NotSupportedFeature::NonPrimaryImpls => "Non primary type implementations like []Int are not currently supported".into(),
+            NotSupportedFeature::GenericImpls => "Generic impls are not implemented yet".into(),
+            NotSupportedFeature::NonForClauseImpls => "Only impl statements for interfaces are implemented at the moment".into(),
         }
     }
 }
@@ -56,6 +69,9 @@ impl CompilerError for TypeError
             TypeError::NotSupported { feature: _, pos } => Some(*pos),
             TypeError::UnknownType { name: _, pos } => Some(*pos),
             TypeError::GenericCountMismatch { expected: _, got: _, pos } => Some(*pos),
+            TypeError::TypeNotAnInterface { name } => Some(name.get_pos()),
+            TypeError::TypeNotAnStruct { name } => Some(name.get_pos()),
+            TypeError::OverlappingInterfaceImplementation { pos } => Some(*pos),
         }
     }
 
@@ -67,6 +83,9 @@ impl CompilerError for TypeError
             TypeError::NotSupported { feature, pos: _ } => feature.get_message(),
             TypeError::UnknownType { name, pos: _ } => format!("Unknown type name {}", name.value_string().unwrap()),
             TypeError::GenericCountMismatch { expected, got, pos: _ } => format!("Expected generic count {}, found {}", expected, got),
+            TypeError::TypeNotAnInterface { name } => format!("Type {} is not an interface", name.pretty_print()),
+            TypeError::TypeNotAnStruct { name } => format!("Type {} is not a struct", name.pretty_print()),
+            TypeError::OverlappingInterfaceImplementation { pos: _ } => format!("Interface already implemented for type."),
         }
     }
 }

@@ -159,6 +159,11 @@ impl ProgramTypeDefinitions
             None    
         }
     }
+
+    pub fn get_interface_from_name(&self, name: &str) -> Option<&InterfaceDef>
+    {
+        self.interfaces.values().find(|s| s.name == name)
+    }
 }
 
 #[derive(Debug, Clone)]
