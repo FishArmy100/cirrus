@@ -6,7 +6,7 @@ pub use type_error::*;
 pub use type_def::*;
 use uuid::Uuid;
 
-use crate::{ast::{Declaration, ImplStmt, Program, TypeName}, lexing::token::Token};
+use crate::{ast::{Declaration, Expression, ImplStmt, Program, TypeName}, lexing::token::Token};
 
 pub enum TypePattern
 {
@@ -177,5 +177,46 @@ impl TypeContext
             defs,
             impls,
         })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryOp
+{
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+    Modulus,
+    GreaterThan,
+    LessThan,
+    GreaterThanEqual,
+    LessThanEqual,
+    NotEqual,
+    Equal,
+    And,
+    Or
+}
+
+pub enum TypedExpression
+{
+    Literal
+    {
+        returned: TypePattern,
+    },
+    Binary
+    {
+        left: Box<TypedExpression>,
+        op: BinaryOp,
+        right: Box<TypedExpression>,
+        returned: TypePattern,
+    }
+}
+
+impl TypedExpression
+{
+    pub fn new(expr: &Expression, context: &TypeContext) -> Result<Self, TypeError>
+    {
+        
     }
 }
