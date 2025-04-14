@@ -19,12 +19,12 @@ pub enum TypePattern
 
 impl TypePattern
 {
-    pub fn new(type_name: &TypeName, globals: &ProgramTypeDefinitions) -> Result<Self, TypeError>
+    pub fn new(type_name: &TypeName, type_defs: &ProgramTypeDefinitions) -> Result<Self, TypeError>
     {
         match type_name
         {
             TypeName::Identifier { name, args } => {
-                let Some(type_def) = globals.get_from_name(&name.value_string().unwrap()) else {
+                let Some(type_def) = type_defs.get_from_name(&name.value_string().unwrap()) else {
                     return Err(TypeError::UnknownType { name: name.clone(), pos: type_name.get_pos() });
                 };
 
@@ -40,7 +40,7 @@ impl TypePattern
                 }
                 
                 let generics: Result<Vec<_>, _> = args.as_ref()
-                    .map_or(vec![], |g| g.args.iter().map(|g| Self::new(g, globals)).collect())
+                    .map_or(vec![], |g| g.args.iter().map(|g| Self::new(g, type_defs)).collect())
                     .into_iter().collect();
                 
                 Ok(Self::Primary { id: type_def.get_id().clone(), generics: generics? })
@@ -64,11 +64,11 @@ impl TypePattern
         }
     }
 
-    pub fn is_interface(&self, globals: &ProgramTypeDefinitions) -> bool
+    pub fn is_interface(&self, type_defs: &ProgramTypeDefinitions) -> bool
     {
         match self 
         {
-            TypePattern::Primary { id, generics: _ } => globals.interfaces.contains_key(id),
+            TypePattern::Primary { id, generics: _ } => type_defs.interfaces.contains_key(id),
         }
     }
 }
@@ -88,7 +88,7 @@ impl InterfaceImpl
         self.interface.is_equivalent(&other.interface)
     }
 
-    pub fn new(impl_stmt: &ImplStmt, globals: &ProgramTypeDefinitions) -> Result<Self, TypeError>
+    pub fn new(impl_stmt: &ImplStmt, type_defs: &ProgramTypeDefinitions) -> Result<Self, TypeError>
     {
         if let Some(generic_params) = &impl_stmt.generic_params {
             return Err(TypeError::NotSupported { 
@@ -104,14 +104,14 @@ impl InterfaceImpl
             });
         };
         
-        let interface_pattern = TypePattern::new(&for_clause.1, globals)?;
-        if !interface_pattern.is_interface(globals)
+        let interface_pattern = TypePattern::new(&for_clause.1, type_defs)?;
+        if !interface_pattern.is_interface(type_defs)
         {
             return Err(TypeError::TypeNotAnInterface { name: for_clause.1.clone() })
         }
 
-        let struct_pattern = TypePattern::new(&impl_stmt.type_name, globals)?;
-        if struct_pattern.is_interface(globals)
+        let struct_pattern = TypePattern::new(&impl_stmt.type_name, type_defs)?;
+        if struct_pattern.is_interface(type_defs)
         {
             return Err(TypeError::TypeNotAnStruct { name: impl_stmt.type_name.clone() })
         }
@@ -123,12 +123,12 @@ impl InterfaceImpl
         })
     }
 
-    pub fn from_ast(program: &Program, globals: &ProgramTypeDefinitions) -> TypeResult<Vec<Self>>
+    pub fn from_ast(program: &Program, type_defs: &ProgramTypeDefinitions) -> TypeResult<Vec<Self>>
     {
 
         let impls = program.declarations.iter().filter_map(|d| match d
         {
-            Declaration::Impl(impl_stmt) => Some(InterfaceImpl::new(impl_stmt, globals)),
+            Declaration::Impl(impl_stmt) => Some(InterfaceImpl::new(impl_stmt, type_defs)),
             _ => None,
         }).collect_vec();
 
