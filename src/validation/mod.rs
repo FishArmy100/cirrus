@@ -1,95 +1,18 @@
 pub mod type_error;
 pub mod type_def;
 pub mod builtins;
+pub mod type_pattern;
+
+use std::ops::Deref;
 
 use builtins::get_builtin_impls;
 use itertools::Itertools;
 pub use type_error::*;
 pub use type_def::*;
+use type_pattern::TypePattern;
 use uuid::Uuid;
 
 use crate::{ast::{Declaration, Expression, ImplStmt, Program, TypeName}, lexing::token::{Token, TokenType}};
-
-#[derive(Debug, Clone)]
-pub enum TypePattern
-{
-    Primary
-    {
-        id: Uuid,
-        generics: Vec<TypePattern>,
-    },
-}
-
-impl TypePattern
-{
-
-    pub fn new_primary(id: Uuid) -> Self 
-    {
-        Self::Primary { id, generics: vec![] }
-    }
-
-    pub fn get_primary_id(&self) -> Option<&Uuid>
-    {
-        match self 
-        {
-            Self::Primary { id, generics: _ } => Some(id),
-            _ => None,
-        }
-    }
-
-    pub fn from_type_name(type_name: &TypeName, type_defs: &ProgramTypeDefinitions) -> Result<Self, TypeError>
-    {
-        match type_name
-        {
-            TypeName::Identifier { name, args } => {
-                let Some(type_def) = type_defs.get_from_name(&name.value_string().unwrap()) else {
-                    return Err(TypeError::UnknownType { name: name.clone(), pos: type_name.get_pos() });
-                };
-
-                let generics_count = args.as_ref().map_or(0, |args| args.args.len());
-
-                if type_def.get_generic_count() != generics_count
-                {
-                    return Err(TypeError::GenericCountMismatch { 
-                        expected: type_def.get_generic_count(), 
-                        got: generics_count, 
-                        pos: type_name.get_pos(), 
-                    });
-                }
-                
-                let generics: Result<Vec<_>, _> = args.as_ref()
-                    .map_or(vec![], |g| g.args.iter().map(|g| Self::from_type_name(g, type_defs)).collect())
-                    .into_iter().collect();
-                
-                Ok(Self::Primary { id: type_def.get_id().clone(), generics: generics? })
-            },
-            t => return Err(TypeError::NotSupported { 
-                feature: NotSupportedFeature::NonPrimaryImpls, 
-                pos: t.get_pos() 
-            })
-        }
-    }
-
-    pub fn is_equivalent(&self, other: &Self) -> bool
-    {
-        match (self, other) 
-        {
-            (TypePattern::Primary { id: s_id, generics: s_generics }, TypePattern::Primary { id, generics }) => {
-                s_id == id && 
-                s_generics.len() == generics.len() && 
-                s_generics.iter().zip(generics.iter()).all(|(a, b)| a.is_equivalent(b))
-            }
-        }
-    }
-
-    pub fn is_interface(&self, type_defs: &ProgramTypeDefinitions) -> bool
-    {
-        match self 
-        {
-            TypePattern::Primary { id, generics: _ } => type_defs.interfaces.contains_key(id),
-        }
-    }
-}
 
 pub struct InterfaceImpl
 {
