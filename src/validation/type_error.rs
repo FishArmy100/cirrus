@@ -80,6 +80,7 @@ impl CompilerError for TypeError
             TypeError::TypeNotAnInterface { name } => Some(name.get_pos()),
             TypeError::TypeNotAnStruct { name } => Some(name.get_pos()),
             TypeError::OverlappingInterfaceImplementation { pos } => *pos,
+            TypeError::OperatorDoesNotExist { op, left: _, right: _ } => Some(op.pos)
         }
     }
 
@@ -88,19 +89,20 @@ impl CompilerError for TypeError
         match self 
         {
             TypeError::DuplicateTypeDefinition { original: _, duplicate } => { 
-                let type_name = match duplicate {
-                    Either::Left(l) => l.value_string().unwrap(),
-                    Either::Right(r) => r
-                };
+                        let type_name = match duplicate {
+                            Either::Left(l) => l.value_string().unwrap(),
+                            Either::Right(r) => r
+                        };
 
-                format!("Duplicate type {}", type_name)
-            },
+                        format!("Duplicate type {}", type_name)
+                    },
             TypeError::NotSupported { feature, pos: _ } => feature.get_message(),
             TypeError::UnknownType { name, pos: _ } => format!("Unknown type name {}", name.value_string().unwrap()),
             TypeError::GenericCountMismatch { expected, got, pos: _ } => format!("Expected generic count {}, found {}", expected, got),
             TypeError::TypeNotAnInterface { name } => format!("Type {} is not an interface", name.pretty_print()),
             TypeError::TypeNotAnStruct { name } => format!("Type {} is not a struct", name.pretty_print()),
             TypeError::OverlappingInterfaceImplementation { pos: _ } => format!("Interface already implemented for type."),
+            TypeError::OperatorDoesNotExist { op, left, right } => format!("Operator {:?} does not exist for types {} and {}", op.token_type, left.pretty_print(), right.pretty_print()),
         }
     }
 }

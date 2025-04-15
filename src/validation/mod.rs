@@ -37,7 +37,7 @@ impl TypePattern
         }
     }
 
-    pub fn from_type_name(type_name: &TypeName, globals: &ProgramTypeDefinitions) -> Result<Self, TypeError>
+    pub fn from_type_name(type_name: &TypeName, type_defs: &ProgramTypeDefinitions) -> Result<Self, TypeError>
     {
         match type_name
         {
@@ -58,7 +58,7 @@ impl TypePattern
                 }
                 
                 let generics: Result<Vec<_>, _> = args.as_ref()
-                    .map_or(vec![], |g| g.args.iter().map(|g| Self::new(g, type_defs)).collect())
+                    .map_or(vec![], |g| g.args.iter().map(|g| Self::from_type_name(g, type_defs)).collect())
                     .into_iter().collect();
                 
                 Ok(Self::Primary { id: type_def.get_id().clone(), generics: generics? })
@@ -106,6 +106,16 @@ impl InterfaceImpl
         self.interface.is_equivalent(&other.interface)
     }
 
+    pub fn new_builtin(implementee: TypePattern, interface: TypePattern) -> Self 
+    {
+        Self 
+        {
+            implementee,
+            interface,
+            token: None,
+        }
+    }
+
     pub fn new(impl_stmt: &ImplStmt, type_defs: &ProgramTypeDefinitions) -> Result<Self, TypeError>
     {
         if let Some(generic_params) = &impl_stmt.generic_params {
@@ -122,13 +132,13 @@ impl InterfaceImpl
             });
         };
         
-        let interface_pattern = TypePattern::new(&for_clause.1, type_defs)?;
+        let interface_pattern = TypePattern::from_type_name(&for_clause.1, type_defs)?;
         if !interface_pattern.is_interface(type_defs)
         {
             return Err(TypeError::TypeNotAnInterface { name: for_clause.1.clone() })
         }
 
-        let struct_pattern = TypePattern::new(&impl_stmt.type_name, type_defs)?;
+        let struct_pattern = TypePattern::from_type_name(&impl_stmt.type_name, type_defs)?;
         if struct_pattern.is_interface(type_defs)
         {
             return Err(TypeError::TypeNotAnStruct { name: impl_stmt.type_name.clone() })
@@ -141,7 +151,7 @@ impl InterfaceImpl
         })
     }
 
-    pub fn from_ast(program: &Program, type_defs: &ProgramTypeDefinitions) -> TypeResult<Vec<Self>>
+    pub fn append_from_ast(others: &mut Vec<Self>, program: &Program, type_defs: &ProgramTypeDefinitions) -> TypeResult<()>
     {
         let impls = program.declarations.iter().filter_map(|d| match d
         {
