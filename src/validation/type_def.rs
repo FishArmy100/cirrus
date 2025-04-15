@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use either::Either;
+use either::Either::{self, Left, Right};
 use itertools::Itertools;
 use uuid::Uuid;
 
@@ -84,6 +84,18 @@ impl ProgramTypeDefinitions
             interfaces,
             builtins,
         }
+    }
+
+    pub fn append_struct(mut self, name: &str, params: Vec<GenericParam>) -> Result<Self, Vec<TypeError>>
+    {
+        if let Some(og) = self.structs.iter().find(|def| def.1.name == name) {
+            let err = TypeError::DuplicateTypeDefinition { original: Right(og.1.name.clone()), duplicate: Right(name.to_string()) };
+            return Err(vec![err])
+        }
+
+        let def = StructDef::new_builtin(name, params);
+        self.structs.insert(def.id.clone(), def);
+        Ok(self)
     }
 
     pub fn append_program(mut self, program: &Program) -> Result<Self, Vec<TypeError>>

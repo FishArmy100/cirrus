@@ -11,7 +11,7 @@ pub use expr_parsing::*;
 
 use token_reader::TokenReader;
 
-use crate::compiler::{CompilerError, CompilerResult};
+use crate::compiler::{CompilerStepError, CompilerStepResult};
 use crate::lexing::token::{Token, TokenType};
 use crate::ast::*;
 use crate::utils::TextPos;
@@ -30,7 +30,7 @@ pub enum ParserError
     ExpectedDeclaration(Option<Token>),
 }
 
-impl CompilerError for ParserError
+impl CompilerStepError for ParserError
 {
     fn pos(&self) -> Option<TextPos> 
     {

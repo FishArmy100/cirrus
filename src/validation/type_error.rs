@@ -1,6 +1,6 @@
 use either::Either;
 
-use crate::{ast::TypeName, compiler::{CompilerError, CompilerResult}, lexing::token::Token, utils::TextPos};
+use crate::{ast::TypeName, compiler::{CompilerStepError, CompilerStepResult}, lexing::token::Token, utils::TextPos};
 
 #[derive(Debug, Clone)]
 pub enum TypeError
@@ -67,7 +67,7 @@ impl NotSupportedFeature
     }
 }
 
-impl CompilerError for TypeError
+impl CompilerStepError for TypeError
 {
     fn pos(&self) -> Option<TextPos> 
     {

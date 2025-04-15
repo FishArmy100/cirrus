@@ -2,7 +2,7 @@ use char_reader::CharReader;
 use keywords::KEYWORDS;
 use token::{Token, TokenType, TokenValue};
 
-use crate::{compiler::{CompilerError, CompilerResult}, utils::TextPos};
+use crate::{compiler::{CompilerStepError, CompilerStepResult}, utils::TextPos};
 
 pub mod keywords;
 pub mod token;
@@ -22,7 +22,7 @@ pub enum LexerError
     }
 }
 
-impl CompilerError for LexerError
+impl CompilerStepError for LexerError
 {
     fn pos(&self) -> Option<TextPos> 
     {
@@ -60,7 +60,7 @@ pub struct LexerResult
     pub errors: Vec<LexerError>,
 }
 
-impl CompilerResult for LexerResult
+impl CompilerStepResult for LexerResult
 {
     fn format_errors(&self, text: &[char], file: Option<&str>) -> Vec<String> 
     {

@@ -1,44 +1,95 @@
-use crate::{ast::{Expression, Program}, lexing, parsing::{self, token_reader::TokenReader}, utils::TextPos};
+use crate::{ast::{Expression, Program, TypeName}, lexing, parsing::{self, token_reader::TokenReader}, utils::TextPos};
 
-pub fn compile_parse_program(src: &str) -> (Result<Option<Program>, Vec<String>>, Vec<char>)
+pub fn compile_parse_program(src: &str, file: Option<&str>) -> CompileResult<Option<Program>>
 {
     let lexed = lexing::lex_text(&src);
     if lexed.is_err()
     {
-        return (Err(lexed.format_errors(&lexed.text, None)), lexed.text);
+        return CompileResult {
+            result: Err(lexed.format_errors(&lexed.text, file)),
+            src: lexed.text,
+        }
     }
     
     let parsed = match parsing::parse(&lexed.tokens)
     {
         Ok(ok) => ok,
-        err => return (Err(err.format_errors(&lexed.text, None)), lexed.text)
+        err => return CompileResult {
+            result: Err(err.format_errors(&lexed.text, file)),
+            src: lexed.text,
+        }
     };
 
-    (Ok(parsed), lexed.text)
+    CompileResult { src: lexed.text, result: Ok(parsed) }
 }
 
-pub fn compile_parse_expression(src: &str) -> (Result<Option<Expression>, Vec<String>>, Vec<char>)
+pub fn compile_parse_expression(src: &str, file: Option<&str>) -> CompileResult<Option<Expression>>
 {
     let lexed = lexing::lex_text(&src);
     if lexed.is_err()
     {
-        return (Err(lexed.format_errors(&lexed.text, None)), lexed.text);
+        return CompileResult {
+            result: Err(lexed.format_errors(&lexed.text, file)),
+            src: lexed.text,
+        };
     }
     
     let Some(mut token_reader) = TokenReader::new(&lexed.tokens, None) else {
-        return (Ok(None), lexed.text)
+        return CompileResult {
+            result: Ok(None),
+            src: lexed.text,
+        }
     };
     
     let parsed = match parsing::parse_expression(&mut token_reader)
     {
         Ok(ok) => ok,
-        err => return (Err(err.format_errors(&lexed.text, None)), lexed.text)
+        err => return CompileResult {
+            result: Err(err.format_errors(&lexed.text, file)),
+            src: lexed.text,
+        }
     };
 
-    (Ok(parsed), lexed.text)
+    CompileResult { src: lexed.text, result: Ok(parsed) }
 }
 
-pub trait CompilerError
+pub fn compile_parse_type(src: &str, file: Option<&str>) -> CompileResult<Option<TypeName>>
+{
+    let lexed = lexing::lex_text(&src);
+    if lexed.is_err()
+    {
+        return CompileResult {
+            result: Err(lexed.format_errors(&lexed.text, file)),
+            src: lexed.text,
+        };
+    }
+    
+    let Some(mut token_reader) = TokenReader::new(&lexed.tokens, None) else {
+        return CompileResult {
+            result: Ok(None),
+            src: lexed.text,
+        }
+    };
+    
+    let parsed = match parsing::parse_type_name(&mut token_reader)
+    {
+        Ok(ok) => ok,
+        err => return CompileResult {
+            result: Err(err.format_errors(&lexed.text, file)),
+            src: lexed.text,
+        }
+    };
+
+    CompileResult { src: lexed.text, result: Ok(parsed) }
+}
+
+pub struct CompileResult<T>
+{
+    pub src: Vec<char>,
+    pub result: Result<T, Vec<String>>
+}
+
+pub trait CompilerStepError
 {
     fn pos(&self) -> Option<TextPos>;
     fn message(&self) -> String;
@@ -53,7 +104,7 @@ pub trait CompilerError
     }
 }
 
-pub trait CompilerResult
+pub trait CompilerStepResult
 {
     fn format_errors(&self, text: &[char], file: Option<&str>) -> Vec<String>;
     fn print_errors(&self, text: &[char], file: Option<&str>)
@@ -74,8 +125,8 @@ pub trait CompilerResult
     }
 }
 
-impl<T, E> CompilerResult for Result<T, Vec<E>> 
-    where E : CompilerError
+impl<T, E> CompilerStepResult for Result<T, Vec<E>> 
+    where E : CompilerStepError
 {
     fn format_errors(&self, text: &[char], file: Option<&str>) -> Vec<String>
     {
@@ -87,8 +138,8 @@ impl<T, E> CompilerResult for Result<T, Vec<E>>
     }
 }
 
-impl<T, E> CompilerResult for Result<T, E>
-    where E : CompilerError
+impl<T, E> CompilerStepResult for Result<T, E>
+    where E : CompilerStepError
 {
     fn format_errors(&self, text: &[char], file: Option<&str>) -> Vec<String> 
     {

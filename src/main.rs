@@ -1,7 +1,7 @@
 use std::{fs::{create_dir_all, File, OpenOptions}, io::{Read, Write}};
 
 use ast::StructDecl;
-use compiler::CompilerResult;
+use compiler::CompilerStepResult;
 use parsing::parse;
 use validation::ProgramTypeDefinitions;
 
@@ -63,27 +63,5 @@ fn main()
 
 fn compile(text: &str, file: Option<&str>)
 {
-    let lexed = lexing::lex_text(&text);
-    if lexed.is_err()
-    {
-        lexed.print_errors(&lexed.text, file);
-        return;
-    }
-
-    let parsed = parse(&lexed.tokens);
-    if parsed.is_err()
-    {
-        parsed.print_errors(&lexed.text, file);
-        return;
-    }
     
-    let result = ProgramTypeDefinitions::new(parsed.get_result().unwrap().as_ref().unwrap());
-    if result.is_err()
-    {
-        result.print_errors(&lexed.text, file);
-        return;
-    }
-
-    println!("Successfully Compiled!");
-    println!("{:#?}", result.get_result().unwrap());
 }

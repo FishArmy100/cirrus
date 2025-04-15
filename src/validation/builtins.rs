@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use uuid::Uuid;
 
-use super::{GenericParam, InterfaceDef, InterfaceImpl, ProgramTypeDefinitions, StructDef, TypeContext, TypePattern};
+use super::{GenericParam, InterfaceDef, StructDef};
 
 
 pub const INT_TYPE_NAME: &str = "Int";
@@ -45,23 +45,6 @@ pub fn get_builtin_types() -> BuiltinsResult
         interfaces,
         builtins,
     }
-}
-
-pub fn get_builtin_impls(builtins: &Builtins) -> Vec<InterfaceImpl>
-{
-    let mut impls = vec![];
-    append_builtin_impl(&mut impls, builtins.int_id.clone(), builtins.add_id.clone(), None);
-    impls
-}
-
-fn append_builtin_impl(v: &mut Vec<InterfaceImpl>, implementee: Uuid, interface: Uuid, returned: Option<Uuid>)
-{
-    let implementee = TypePattern::Primary { id: implementee, generics: vec![] };
-
-    let returned = returned.map(|r| TypePattern::Primary { id: r, generics: vec![] }).unwrap_or(implementee.clone());
-    let interface = TypePattern::Primary { id: interface, generics: vec![returned] };
-    let b = InterfaceImpl::new_builtin(implementee, interface);
-    v.push(b);
 }
 
 fn append_builtin_type<B, F>(map: &mut HashMap<Uuid, B>, name: &str, params: Vec<&str>, f: F) -> Uuid
