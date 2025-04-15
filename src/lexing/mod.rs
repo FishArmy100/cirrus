@@ -60,28 +60,19 @@ pub struct LexerResult
     pub errors: Vec<LexerError>,
 }
 
-impl CompilerResult<LexerResult> for LexerResult
+impl CompilerResult for LexerResult
 {
-    fn is_ok(&self) -> bool 
+    fn format_errors(&self, text: &[char], file: Option<&str>) -> Vec<String> 
     {
-        self.errors.len() == 0
+        self.errors.iter().map(|e| e.format_error(text, file)).collect()
     }
+}
 
-    fn get_result(&self) -> Option<&LexerResult> 
+impl LexerResult
+{
+    pub fn is_err(&self) -> bool
     {
-        if self.is_ok()
-        {
-            Some(self)
-        }
-        else 
-        {
-            None     
-        }
-    }
-    
-    fn get_errors(&self) -> Vec<impl CompilerError>
-    {
-        self.errors.clone()
+        self.errors.len() > 0
     }
 }
 

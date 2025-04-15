@@ -67,42 +67,6 @@ impl CompilerError for ParserError
 
 pub type ParserResult<T> = Result<T, ParserError>;
 
-impl<T> CompilerResult<T> for ParserResult<T>
-{
-    fn is_ok(&self) -> bool 
-    {
-        self.is_ok()
-    }
-
-    fn get_result(&self) -> Option<&T> 
-    {
-        self.as_ref().ok()
-    }
-
-    fn get_errors(&self) -> Vec<impl CompilerError>
-    {
-        self.as_ref().err().map_or(vec![], |e| vec![e.clone()])
-    }
-}
-
-impl CompilerResult<Option<Program>> for Result<Option<Program>, Vec<ParserError>>
-{
-    fn is_ok(&self) -> bool 
-    {
-        self.is_ok()
-    }
-
-    fn get_result(&self) -> Option<&Option<Program>> 
-    {
-        self.as_ref().ok()
-    }
-
-    fn get_errors(&self) -> Vec<impl CompilerError> 
-    {
-        self.as_ref().err().map_or(vec![], |e| e.clone())
-    }
-}
-
 pub fn parse(tokens: &Vec<Token>) -> Result<Option<Program>, Vec<ParserError>>
 {
     let Some(mut reader) = TokenReader::new(tokens, None) else { return Ok(None) };

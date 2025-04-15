@@ -118,6 +118,15 @@ impl TokenValue
             _ => None,
         }
     }
+
+    pub fn as_int(&self) -> Option<i64>
+    {
+        match self 
+        {
+            Self::Int(i) => Some(*i),
+            _ => None
+        }
+    }
 }
 
 impl std::fmt::Display for TokenValue
@@ -147,6 +156,11 @@ impl Token
     pub fn value_string(&self) -> Option<&String>
     {
         self.value.as_ref().map(|s| s.as_string()).flatten()
+    }
+
+    pub fn value_int(&self) -> Option<i64>
+    {
+        self.value.as_ref().map(|s| s.as_int()).flatten()
     }
 
     pub fn get_loc(&self, text: &[char]) -> TextLocation
