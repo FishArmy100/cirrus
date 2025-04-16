@@ -68,7 +68,7 @@ fn compile()
         .append_struct("Vec", vec![GenericParam { name: "T".into() }]).unwrap()
         .append_struct("Pair", vec![GenericParam { name: "A".into() }, GenericParam { name: "B".into() }]).unwrap();
 
-    let type_a = compile_parse_type("Pair[Vec[Int], B]", None).result.unwrap().unwrap();
+    let type_a = compile_parse_type("Pair[A, Int]", None).result.unwrap().unwrap();
     let wild_cards_a = make_wildcards(&["A", "B"]);
     let type_a = TypePattern::from_type_name(&type_a, &context, &wild_cards_a).unwrap();
 
