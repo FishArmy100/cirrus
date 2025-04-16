@@ -26,6 +26,10 @@ pub enum TypeError
         got: usize,
         pos: TextPos,
     },
+    UnknownGenericParameter
+    {
+        token: Token,
+    },
     TypeNotAnInterface
     {
         name: TypeName,
@@ -80,7 +84,8 @@ impl CompilerStepError for TypeError
             TypeError::TypeNotAnInterface { name } => Some(name.get_pos()),
             TypeError::TypeNotAnStruct { name } => Some(name.get_pos()),
             TypeError::OverlappingInterfaceImplementation { pos } => *pos,
-            TypeError::OperatorDoesNotExist { op, left: _, right: _ } => Some(op.pos)
+            TypeError::OperatorDoesNotExist { op, left: _, right: _ } => Some(op.pos),
+            TypeError::UnknownGenericParameter { token } => Some(token.pos),
         }
     }
 
@@ -89,13 +94,13 @@ impl CompilerStepError for TypeError
         match self 
         {
             TypeError::DuplicateTypeDefinition { original: _, duplicate } => { 
-                        let type_name = match duplicate {
-                            Either::Left(l) => l.value_string().unwrap(),
-                            Either::Right(r) => r
-                        };
+                let type_name = match duplicate {
+                    Either::Left(l) => l.value_string().unwrap(),
+                    Either::Right(r) => r
+                };
 
-                        format!("Duplicate type {}", type_name)
-                    },
+                format!("Duplicate type {}", type_name)
+            },
             TypeError::NotSupported { feature, pos: _ } => feature.get_message(),
             TypeError::UnknownType { name, pos: _ } => format!("Unknown type name {}", name.value_string().unwrap()),
             TypeError::GenericCountMismatch { expected, got, pos: _ } => format!("Expected generic count {}, found {}", expected, got),
@@ -103,6 +108,7 @@ impl CompilerStepError for TypeError
             TypeError::TypeNotAnStruct { name } => format!("Type {} is not a struct", name.pretty_print()),
             TypeError::OverlappingInterfaceImplementation { pos: _ } => format!("Interface already implemented for type."),
             TypeError::OperatorDoesNotExist { op, left, right } => format!("Operator {:?} does not exist for types {} and {}", op.token_type, left.pretty_print(), right.pretty_print()),
+            TypeError::UnknownGenericParameter { token } => format!("Unknown generic parameter {}", token.value_string().unwrap()),
         }
     }
 }

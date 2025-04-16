@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use either::Either::{self, Left, Right};
 use itertools::Itertools;
@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{ast::{Declaration, InterfaceDecl, Program, StructDecl}, lexing::token::Token, utils::TextPos};
 
-use super::{builtins::{get_builtin_types, Builtins, BuiltinsResult}, type_error::TypeError};
+use super::{builtins::{get_builtin_types, Builtins, BuiltinsResult}, type_error::TypeError, type_pattern::TypePattern, TypeResult};
 
 #[derive(Debug, Clone, Copy)]
 pub enum TypeDefRef<'a>
@@ -63,17 +63,21 @@ impl<'a> TypeDefRef<'a>
     }
 }
 
-
-
-#[derive(Debug)]
-pub struct ProgramTypeDefinitions
+pub struct TypeDefContextBuilder
 {
+    pub errors: Vec<TypeError>,
     pub interfaces: HashMap<Uuid, InterfaceDef>,
     pub structs: HashMap<Uuid, StructDef>,
     pub builtins: Builtins,
 }
 
-impl ProgramTypeDefinitions
+pub struct TypeDefContextBuilderResult
+{
+    pub context: TypeDefContext,
+    pub errors: Vec<TypeError>,
+}
+
+impl TypeDefContextBuilder
 {
     pub fn new() -> Self
     {
@@ -83,22 +87,24 @@ impl ProgramTypeDefinitions
             structs,
             interfaces,
             builtins,
+            errors: vec![],
         }
     }
 
-    pub fn append_struct(mut self, name: &str, params: Vec<GenericParam>) -> Result<Self, Vec<TypeError>>
+    pub fn append_struct(mut self, name: &str, params: Vec<GenericParam>) -> Self
     {
         if let Some(og) = self.structs.iter().find(|def| def.1.name == name) {
             let err = TypeError::DuplicateTypeDefinition { original: Right(og.1.name.clone()), duplicate: Right(name.to_string()) };
-            return Err(vec![err])
+            self.errors.push(err);
+            return self;
         }
 
         let def = StructDef::new_builtin(name, params);
         self.structs.insert(def.id.clone(), def);
-        Ok(self)
+        self
     }
 
-    pub fn append_program(mut self, program: &Program) -> Result<Self, Vec<TypeError>>
+    pub fn append_program(mut self, program: &Program) -> Self
     {
         let mut errors = vec![];
 
@@ -110,15 +116,29 @@ impl ProgramTypeDefinitions
                 {
                     match StructDef::from_struct_decl(decl)
                     {
-                        Ok(ok) => { self.structs.insert(ok.id.clone(), ok); },
+                        Ok(ok) => { 
+                            if let Some(t) = self.get_from_name(&ok.name)
+                            {
+                                self.errors.push(make_duplicate_type_error(TypeDefRef::Struct(&ok), t));
+                                continue;
+                            }
+                            self.structs.insert(ok.id.clone(), ok); 
+                        },
                         Err(errs) => errors.extend(errs),
                     }
                 }
                 Declaration::Interface(_, decl) => 
                 {
-                    match InterfaceDef::from_interface_decl(decl)
+                    match InterfaceDef::from_interface_decl(decl.clone())
                     {
-                        Ok(ok) => { self.interfaces.insert(ok.id.clone(), ok); },
+                        Ok(ok) => { 
+                            if let Some(t) = self.get_from_name(&ok.name)
+                            {
+                                self.errors.push(make_duplicate_type_error(TypeDefRef::Interface(&ok), t));
+                                continue;
+                            }
+                            self.interfaces.insert(ok.id.clone(), ok); 
+                        },
                         Err(errs) => errors.extend(errs),
                     }
                 }
@@ -126,41 +146,65 @@ impl ProgramTypeDefinitions
             }
         }
 
-        let mut def_refs = vec![];
-        self.structs.values().for_each(|s| def_refs.push(TypeDefRef::Struct(s)));
-        self.interfaces.values().for_each(|i| def_refs.push(TypeDefRef::Interface(i)));
+        self
+    }
 
-        let duplicate_errors = def_refs.iter().duplicates_by(|d| d.name()).map(|def| {
-            let og = def_refs.iter().find(|d| d.name() == def.name()).unwrap();
-
-            let original = match og.name_token() {
-                Some(token) => Either::Left(token.clone()),
-                None => Either::Right(og.name().into())
-            };
-
-            let duplicate = match def.name_token() {
-                Some(token) => Either::Left(token.clone()),
-                None => Either::Right(def.name().into())
-            };
-
-            TypeError::DuplicateTypeDefinition { 
-                original,
-                duplicate,
-            }
-        }).collect_vec();
-
-        errors.extend(duplicate_errors);
-        
-        if errors.len() > 0
+    fn get_from_name(&self, name: &str) -> Option<TypeDefRef>
+    {
+        if let Some(s) = self.structs.values().find(|v| v.name == name)
         {
-            Err(errors)
+            Some(TypeDefRef::Struct(s))
+        }
+        else if let Some(i) = self.interfaces.values().find(|v| v.name == name)
+        {
+            Some(TypeDefRef::Interface(i))
         }
         else 
         {
-            Ok(self)
+            None    
         }
     }
 
+    pub fn build(self) -> TypeResult<TypeDefContext>
+    {
+        Ok(TypeDefContext { 
+            interfaces: self.interfaces, 
+            structs: self.structs, 
+            builtins: self.builtins 
+        })
+    }
+}
+
+fn make_duplicate_type_error(duplicate: TypeDefRef<'_>, original: TypeDefRef<'_>) -> TypeError 
+{
+    let original = match original.name_token() 
+    {
+        Some(token) => Either::Left(token.clone()),
+        None => Either::Right(original.name().into())
+    };
+
+    let duplicate = match duplicate.name_token() 
+    {
+        Some(token) => Either::Left(token.clone()),
+        None => Either::Right(duplicate.name().into())
+    };
+
+    TypeError::DuplicateTypeDefinition { 
+        original,
+        duplicate,
+    }
+}
+
+#[derive(Debug)]
+pub struct TypeDefContext
+{
+    pub interfaces: HashMap<Uuid, InterfaceDef>,
+    pub structs: HashMap<Uuid, StructDef>,
+    pub builtins: Builtins,
+}
+
+impl TypeDefContext
+{
     pub fn get_def(&self, id: &Uuid) -> Option<TypeDefRef>
     {
         if let Some(s) = self.structs.get(id)
@@ -173,7 +217,7 @@ impl ProgramTypeDefinitions
         }
         else 
         {
-            None    
+            None
         }
     }
 
@@ -203,6 +247,7 @@ impl ProgramTypeDefinitions
 pub struct GenericParam 
 {
     pub name: String,
+    pub restrictions: Vec<TypePattern>,
 }
 
 #[derive(Debug)]
@@ -266,10 +311,19 @@ impl StructDef
                 let name = p.value_string().unwrap().clone();
                 GenericParam {
                     name,
+                    restrictions: vec![],
                 }
             }).collect()).unwrap_or_default()
         })
     }
+}
+
+#[derive(Debug)]
+pub struct InterfaceMember
+{
+    pub name: String,
+    pub id: Uuid,
+    pub pattern: TypePattern,
 }
 
 #[derive(Debug)]
@@ -280,6 +334,8 @@ pub struct InterfaceDef
     pub name_tok: Option<Token>,
     pub pos: Option<TextPos>,
     pub generic_params: Vec<GenericParam>,
+    pub members: Vec<InterfaceMember>,
+    pub ast_node: Option<Arc<InterfaceDecl>>
 }
 
 impl InterfaceDef
@@ -293,10 +349,12 @@ impl InterfaceDef
             name_tok: None,
             pos: None,
             generic_params: params,
+            members: vec![],
+            ast_node: None,
         }
     }
 
-    pub fn from_interface_decl(decl: &InterfaceDecl) -> Result<InterfaceDef, Vec<TypeError>>
+    pub fn from_interface_decl(decl: Arc<InterfaceDecl>) -> Result<InterfaceDef, Vec<TypeError>>
     {
         let interface_id = decl.id.value.as_ref().unwrap().as_string().unwrap();
         let generic_params = decl.generic_params.as_ref();
@@ -330,8 +388,11 @@ impl InterfaceDef
                 let name = p.value_string().unwrap().clone();
                 GenericParam {
                     name,
+                    restrictions: vec![],
                 }
-            }).collect()).unwrap_or_default()
+            }).collect()).unwrap_or_default(),
+            members: vec![],
+            ast_node: Some(decl),
         })
 
     }

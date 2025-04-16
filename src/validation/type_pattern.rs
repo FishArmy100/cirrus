@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{ast::TypeName, lexing::token::Token};
 
-use super::{ProgramTypeDefinitions, TypeError};
+use super::{TypeDefContext, TypeError};
 
 #[derive(Debug, Clone)]
 pub enum TypePattern
@@ -16,12 +16,17 @@ pub enum TypePattern
         type_id: Uuid,
         generic_args: Vec<TypePattern>
     },
+    Function
+    {
+        args: Vec<TypePattern>,
+        returned: Box<TypePattern>,
+    },
     WildCard(WildCard)
 }
 
 impl TypePattern
 {
-    pub fn from_type_name(type_name: &TypeName, defs: &ProgramTypeDefinitions, wild_cards: &HashMap<String, WildCard>) -> Result<Self, TypeError>
+    pub fn from_type_name(type_name: &TypeName, defs: &TypeDefContext, wild_cards: &HashMap<String, WildCard>) -> Result<Self, TypeError>
     {
         let TypeName::Identifier { name: name_tok, args } = type_name else {
             panic!("This no worky")
@@ -61,14 +66,21 @@ impl TypePattern
         {
             (Self::Primary { type_id: a_id, generic_args: a_args }, Self::Primary { type_id: b_id, generic_args: b_args }) => {
                 a_id == b_id && // make sure they are the same type
+                a_args.len() == b_args.len() &&
                 a_args.iter().zip(b_args.iter()).all(|(a, b)| a._is_aliasable_as(b, mappings)) // make sure all the args are aliasable as each other
             },
-            (Self::Primary { type_id, generic_args }, Self::WildCard(wild_card)) => 
-            {
-                mappings.push_pair(wild_card.id.clone(), Either::Right(Self::Primary { type_id: type_id.clone(), generic_args: generic_args.clone() }))
+            (Self::Function { args: a_args, returned: a_ret }, Self::Function { args: b_args, returned: b_ret }) => {
+                a_args.len() == b_args.len() &&
+                a_args.iter().zip(b_args.iter()).all(|(a, b)| a._is_aliasable_as(b, mappings)) &&
+                a_ret._is_aliasable_as(&b_ret, mappings)
             },
-            (Self::WildCard(_), Self::Primary { type_id: _, generic_args: _ }) => false, // cannot alias a unknown type as a known one
             (Self::WildCard(a), Self::WildCard(b)) => a.is_aliasable_as(b, mappings),
+            (s, Self::WildCard(wild_card)) => 
+            {
+                mappings.push_pair(wild_card.id.clone(), Either::Right(s.clone()))
+            },
+            (Self::WildCard(_), _) => false, // cannot alias a unknown type as a known one
+            _ => false,
         }
     }
 }

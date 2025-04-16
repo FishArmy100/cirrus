@@ -4,7 +4,7 @@ use ast::StructDecl;
 use compiler::{compile_parse_type, CompilerStepResult};
 use parsing::parse;
 use uuid::Uuid;
-use validation::{type_pattern::{TypePattern, WildCard}, GenericParam, ProgramTypeDefinitions};
+use validation::{type_pattern::{TypePattern, WildCard}, GenericParam, TypeDefContext, TypeDefContextBuilder};
 
 pub mod lexing;
 pub mod parsing;
@@ -64,9 +64,10 @@ fn main()
 
 fn compile()
 {
-    let context = ProgramTypeDefinitions::new()
+    let context = TypeDefContextBuilder::new()
         .append_struct("Vec", vec![GenericParam { name: "T".into() }]).unwrap()
-        .append_struct("Pair", vec![GenericParam { name: "A".into() }, GenericParam { name: "B".into() }]).unwrap();
+        .append_struct("Pair", vec![GenericParam { name: "A".into() }, GenericParam { name: "B".into() }]).unwrap()
+        .build();
 
     let type_a = compile_parse_type("Pair[Vec[Int], B]", None).result.unwrap().unwrap();
     let wild_cards_a = make_wildcards(&["A", "B"]);

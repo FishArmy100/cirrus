@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use either::Either;
 
 use crate::lexing::token::Token;
@@ -244,14 +246,14 @@ pub struct WhileStmt
 #[derive(Debug, Clone)]
 pub enum Declaration
 {
-    Fn(Option<Token>, FnDecl),
-    Struct(Option<Token>, StructDecl),
-    Interface(Option<Token>, InterfaceDecl),
-    Enum(Option<Token>, EnumDecl),
-    Type(Option<Token>, TypeDecl),
-    Let(Option<Token>, LetStmt),
-    Use(Option<Token>, UseStmt),
-    Impl(ImplStmt),
+    Fn(Option<Token>, Arc<FnDecl>),
+    Struct(Option<Token>, Arc<StructDecl>),
+    Interface(Option<Token>, Arc<InterfaceDecl>),
+    Enum(Option<Token>, Arc<EnumDecl>),
+    Type(Option<Token>, Arc<TypeDecl>),
+    Let(Option<Token>, Arc<LetStmt>),
+    Use(Option<Token>, Arc<UseStmt>),
+    Impl(Arc<ImplStmt>),
 }
 
 
