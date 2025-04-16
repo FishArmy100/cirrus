@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use either::Either;
 
 use crate::{ast::*, lexing::token::{Token, TokenType, ASSIGNMENT_TOKENS}};
@@ -99,42 +101,42 @@ pub fn parse_declaration(reader: &mut TokenReader) -> ParserResult<Option<Declar
 
     if let Some(stmt) = parse_fn_decl(reader)?
     {
-        return Ok(Some(Declaration::Fn(pub_tok, stmt)));
+        return Ok(Some(Declaration::Fn(pub_tok, Arc::new(stmt))));
     }
     
     if let Some(stmt) = parse_struct_decl(reader)?
     {
-        return Ok(Some(Declaration::Struct(pub_tok, stmt)));
+        return Ok(Some(Declaration::Struct(pub_tok, Arc::new(stmt))));
     }
 
     if let Some(stmt) = parse_interface_decl(reader)?
     {
-        return Ok(Some(Declaration::Interface(pub_tok, stmt)));
+        return Ok(Some(Declaration::Interface(pub_tok, Arc::new(stmt))));
     }
 
     if let Some(stmt) = parse_enum_decl(reader)?
     {
-        return Ok(Some(Declaration::Enum(pub_tok, stmt)));
+        return Ok(Some(Declaration::Enum(pub_tok, Arc::new(stmt))));
     }
 
     if let Some(stmt) = parse_type_decl(reader)?
     {
-        return Ok(Some(Declaration::Type(pub_tok, stmt)));
+        return Ok(Some(Declaration::Type(pub_tok, Arc::new(stmt))));
     }
 
     if let Some(stmt) = parse_let(reader)?
     {
-        return Ok(Some(Declaration::Let(pub_tok, stmt)));
+        return Ok(Some(Declaration::Let(pub_tok, Arc::new(stmt))));
     }
 
     if let Some(stmt) = parse_use_stmt(reader)?
     {
-        return Ok(Some(Declaration::Use(pub_tok, stmt)));
+        return Ok(Some(Declaration::Use(pub_tok, Arc::new(stmt))));
     }
 
     if let Some(stmt) = parse_impl_stmt(reader)?
     {
-        return Ok(Some(Declaration::Impl(stmt)));
+        return Ok(Some(Declaration::Impl(Arc::new(stmt))));
     }
 
     if pub_tok.is_some()
