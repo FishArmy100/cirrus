@@ -1,9 +1,10 @@
-use std::{fs::{create_dir_all, File, OpenOptions}, io::{Read, Write}};
+use std::{collections::HashMap, fs::{create_dir_all, File, OpenOptions}, io::{Read, Write}};
 
 use ast::StructDecl;
-use compiler::CompilerStepResult;
+use compiler::{compile_parse_type, CompilerStepResult};
 use parsing::parse;
-use validation::ProgramTypeDefinitions;
+use uuid::Uuid;
+use validation::{type_pattern::{TypePattern, WildCard}, GenericParam, ProgramTypeDefinitions};
 
 pub mod lexing;
 pub mod parsing;
@@ -58,10 +59,35 @@ fn main()
     let text = read_file(file_name).unwrap();
     // let text = "utils.Option[Int](1)";
     // let text = "1 + 1 == false";
-    compile(&text, None);
+    compile();
 }
 
-fn compile(text: &str, file: Option<&str>)
+fn compile()
 {
-    
+    let context = ProgramTypeDefinitions::new()
+        .append_struct("Vec", vec![GenericParam { name: "T".into() }]).unwrap()
+        .append_struct("Pair", vec![GenericParam { name: "A".into() }, GenericParam { name: "B".into() }]).unwrap();
+
+    let type_a = compile_parse_type("Pair[Vec[Int], B]", None).result.unwrap().unwrap();
+    let wild_cards_a = make_wildcards(&["A", "B"]);
+    let type_a = TypePattern::from_type_name(&type_a, &context, &wild_cards_a).unwrap();
+
+    let type_b = compile_parse_type("Pair[C, Int]", None).result.unwrap().unwrap();
+    let wild_cards_b = make_wildcards(&["C", "D"]);
+    let type_b = TypePattern::from_type_name(&type_b, &context, &wild_cards_b).unwrap();
+    println!("{:#?}", type_a.is_aliasable_as(&type_b));
+}
+
+fn make_wildcards(names: &[&str]) -> HashMap<String, WildCard>
+{
+    let mut wild_cards = HashMap::new();
+    for name in names
+    {
+        wild_cards.insert(name.to_string(), WildCard {
+            id: Uuid::new_v4(),
+            impls: vec![]
+        });
+    }
+
+    wild_cards
 }
