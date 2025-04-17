@@ -51,7 +51,7 @@ fn append_builtin_type<B, F>(map: &mut HashMap<Uuid, B>, name: &str, params: Vec
     where F : Fn(&str, Vec<GenericParam>) -> B,
           B : IdAble
 {
-    let b = f(name, params.iter().map(|b| GenericParam { name: b.to_string() }).collect_vec());
+    let b = f(name, params.iter().map(|b| GenericParam { name: b.to_string(), restrictions: vec![] }).collect_vec());
     let id = b.get_id();
     map.insert(id.clone(), b);
     id

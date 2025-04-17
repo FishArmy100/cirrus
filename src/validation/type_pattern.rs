@@ -128,7 +128,7 @@ impl WildCardMappings
 pub struct WildCard
 {
     pub id: Uuid,
-    pub impls: Vec<Uuid> // interface ids
+    pub impls: Vec<TypePattern> // interface ids
 }
 
 impl WildCard
@@ -138,7 +138,9 @@ impl WildCard
     /// Example: `T : Add + Clone` and `F : Add` so `T.is_aliasable_as(F)` is **true** but `T.is_aliasable_as(F)` is **false**
     pub fn is_aliasable_as(&self, other: &Self, mappings: &mut WildCardMappings) -> bool
     {
-        other.impls.iter().all(|w| self.impls.contains(w)) && mappings.push_pair(other.id, Either::Left(self.id.clone()))
+        other.impls.len() == self.impls.len() &&
+        self.impls.iter().zip(other.impls.iter()).all(|(a, b)| a._is_aliasable_as(b, mappings)) &&
+        mappings.push_pair(other.id, Either::Left(self.id.clone()))
     }
 }
 

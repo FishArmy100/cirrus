@@ -65,17 +65,18 @@ fn main()
 fn compile()
 {
     let context = TypeDefContextBuilder::new()
-        .append_struct("Vec", vec![GenericParam { name: "T".into() }]).unwrap()
-        .append_struct("Pair", vec![GenericParam { name: "A".into() }, GenericParam { name: "B".into() }]).unwrap()
+        .append_struct("Vec", vec![GenericParam { name: "T".into(), restrictions: vec![] }])
+        .append_struct("Pair", vec![GenericParam { name: "A".into(), restrictions: vec![] }, GenericParam { name: "B".into(), restrictions: vec![] }])
         .build();
+
 
     let type_a = compile_parse_type("Pair[A, Int]", None).result.unwrap().unwrap();
     let wild_cards_a = make_wildcards(&["A", "B"]);
-    let type_a = TypePattern::from_type_name(&type_a, &context, &wild_cards_a).unwrap();
+    let type_a = TypePattern::from_type_name(&type_a, &context.context, &wild_cards_a).unwrap();
 
     let type_b = compile_parse_type("Pair[C, Int]", None).result.unwrap().unwrap();
     let wild_cards_b = make_wildcards(&["C", "D"]);
-    let type_b = TypePattern::from_type_name(&type_b, &context, &wild_cards_b).unwrap();
+    let type_b = TypePattern::from_type_name(&type_b, &context.context, &wild_cards_b).unwrap();
     println!("{:#?}", type_a.is_aliasable_as(&type_b));
 }
 

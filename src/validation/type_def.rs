@@ -4,7 +4,7 @@ use either::Either::{self, Left, Right};
 use itertools::Itertools;
 use uuid::Uuid;
 
-use crate::{ast::{Declaration, InterfaceDecl, Program, StructDecl}, lexing::token::Token, utils::TextPos};
+use crate::{ast::{Declaration, InterfaceDecl, Program, StructDecl}, compiler::{CompileResult, CompilerStepError, CompilerStepResult}, lexing::token::Token, utils::TextPos};
 
 use super::{builtins::{get_builtin_types, Builtins, BuiltinsResult}, type_error::TypeError, type_pattern::TypePattern, TypeResult};
 
@@ -63,18 +63,29 @@ impl<'a> TypeDefRef<'a>
     }
 }
 
+
+pub struct TypeDefContextBuilderResult
+{
+    pub context: TypeDefContext,
+    pub errors: Vec<TypeError>,
+}
+
+impl CompilerStepResult for TypeDefContextBuilderResult
+{
+    fn format_errors(&self, text: &[char], file: Option<&str>) -> Vec<String> 
+    {
+        self.errors.iter()
+            .map(|e| e.format_error(text, file))
+            .collect()
+    }
+}
+
 pub struct TypeDefContextBuilder
 {
     pub errors: Vec<TypeError>,
     pub interfaces: HashMap<Uuid, InterfaceDef>,
     pub structs: HashMap<Uuid, StructDef>,
     pub builtins: Builtins,
-}
-
-pub struct TypeDefContextBuilderResult
-{
-    pub context: TypeDefContext,
-    pub errors: Vec<TypeError>,
 }
 
 impl TypeDefContextBuilder
@@ -114,7 +125,7 @@ impl TypeDefContextBuilder
             {
                 Declaration::Struct(_, decl) => 
                 {
-                    match StructDef::from_struct_decl(decl)
+                    match StructDef::from_struct_decl(decl.clone())
                     {
                         Ok(ok) => { 
                             if let Some(t) = self.get_from_name(&ok.name)
@@ -165,13 +176,16 @@ impl TypeDefContextBuilder
         }
     }
 
-    pub fn build(self) -> TypeResult<TypeDefContext>
+    pub fn build(self) -> TypeDefContextBuilderResult
     {
-        Ok(TypeDefContext { 
-            interfaces: self.interfaces, 
-            structs: self.structs, 
-            builtins: self.builtins 
-        })
+        TypeDefContextBuilderResult { 
+            context: TypeDefContext { 
+                interfaces: self.interfaces, 
+                structs: self.structs, 
+                builtins: self.builtins
+            }, 
+            errors: self.errors 
+        }
     }
 }
 
@@ -233,7 +247,7 @@ impl TypeDefContext
         }
         else 
         {
-            None    
+            None
         }
     }
 
@@ -257,7 +271,8 @@ pub struct StructDef
     pub name: String,
     pub name_tok: Option<Token>,
     pub pos: Option<TextPos>,
-    pub generic_params: Vec<GenericParam>
+    pub generic_params: Vec<GenericParam>,
+    pub ast_node: Option<Arc<StructDecl>>,
 }
 
 impl StructDef
@@ -270,11 +285,12 @@ impl StructDef
             name: name.into(),
             name_tok: None,
             pos: None,
-            generic_params: params
+            generic_params: params,
+            ast_node: None,
         }
     }
 
-    pub fn from_struct_decl(decl: &StructDecl) -> Result<StructDef, Vec<TypeError>>
+    pub fn from_struct_decl(decl: Arc<StructDecl>) -> Result<StructDef, Vec<TypeError>>
     {
         let struct_id = decl.id.value.as_ref().unwrap().as_string().unwrap();
         let generic_params = decl.generic_params.as_ref();
@@ -313,7 +329,8 @@ impl StructDef
                     name,
                     restrictions: vec![],
                 }
-            }).collect()).unwrap_or_default()
+            }).collect()).unwrap_or_default(),
+            ast_node: Some(decl),
         })
     }
 }
@@ -334,7 +351,6 @@ pub struct InterfaceDef
     pub name_tok: Option<Token>,
     pub pos: Option<TextPos>,
     pub generic_params: Vec<GenericParam>,
-    pub members: Vec<InterfaceMember>,
     pub ast_node: Option<Arc<InterfaceDecl>>
 }
 
@@ -349,7 +365,6 @@ impl InterfaceDef
             name_tok: None,
             pos: None,
             generic_params: params,
-            members: vec![],
             ast_node: None,
         }
     }
@@ -391,7 +406,6 @@ impl InterfaceDef
                     restrictions: vec![],
                 }
             }).collect()).unwrap_or_default(),
-            members: vec![],
             ast_node: Some(decl),
         })
 
